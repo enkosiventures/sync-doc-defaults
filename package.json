@@ -1,0 +1,84 @@
+{
+  "name": "sync-doc-defaults",
+  "version": "0.1.0",
+  "description": "Keep your TypeScript JSDocs in sync with runtime default values — no manual edits.",
+  "keywords": [
+    "documentation",
+    "defaults",
+    "sync",
+    "jsdocs",
+    "typescript",
+    "constants",
+    "cli",
+    "tool"
+  ],
+  "homepage": "https://github.com/enkosiventures/sync-doc-defaults",
+  "bugs": "https://github.com/enkosiventures/sync-doc-defaults/issues",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/enkosiventures/sync-doc-defaults.git",
+    "directory": "packages/sync-doc-defaults"
+  },
+  "license": "MIT",
+  "author": "Enkosi Ventures <enkosiventures@gmail.com>",
+  "sideEffects": false,
+  "type": "module",
+  "packageManager": "pnpm@10.17.0",
+  "main": "dist/index.js",
+  "module": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "bin": {
+    "sync-doc-defaults": "./dist/cli.js"
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "engines": {
+    "node": ">=18"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsup",
+    "build:watch": "tsup --watch",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint . --ext .ts,.tsx --cache",
+    "lint:fix": "eslint . --ext .ts,.tsx --cache --fix",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage",
+    "clean": "rimraf dist coverage",
+    "prepublishOnly": "pnpm run build && pnpm run test"
+  },
+  "peerDependencies": {
+    "tsx": "^4.0.0",
+    "typescript": ">=5.0.0"
+  },
+  "peerDependenciesMeta": {
+    "tsx": {
+      "optional": true
+    }
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.37.0",
+    "@types/node": "^24.6.2",
+    "@typescript-eslint/eslint-plugin": "^8.45.0",
+    "@typescript-eslint/parser": "^8.45.0",
+    "eslint": "^9.37.0",
+    "eslint-config-prettier": "^10.1.8",
+    "eslint-plugin-prettier": "^5.5.4",
+    "globals": "^16.4.0",
+    "tsup": "^8.5.0",
+    "typescript": "^5.9.3",
+    "vitest": "^3.2.4"
+  }
+}
