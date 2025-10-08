@@ -9,6 +9,7 @@ import { EXIT_CODES } from './constants.js';
 // 0 = success
 // 1 = assertion/validation failure
 // 2 = config not found
+// 3 = general error
 
 type Subcommand = 'inject' | 'assert';
 
