@@ -67,14 +67,17 @@ async function main() {
     let debugPaths = false;
     let dryRun = false;
     let tsMode: TsMode | undefined;
+    let tag: 'default' | 'defaultValue' | undefined;
 
+    console.warn(argv);
     for (let i = 1; i < argv.length; i++) {
       const a = argv[i];
       if ((a === '-c' || a === '--config') && argv[i + 1]) { configPath = path.resolve(argv[++i]); continue; }
       if (a === '--quiet') { quiet = true; continue; }
       if (a === '--debug-paths') { debugPaths = true; continue; }
       if (a === '--dry') { dryRun = true; continue; }
-      if (a === '--ts') tsMode = coerceTsMode(argv[++i]);
+      if (a === '--ts') { tsMode = coerceTsMode(argv[++i]); continue; }
+      if (a === '--tag') { tag = (argv[++i] === 'defaultValue' ? 'defaultValue' : 'default'); continue; }
       usage(`Unknown option: ${a}`);
     }
 
@@ -88,7 +91,7 @@ async function main() {
     }
 
     const repoRoot = process.cwd(); // treat cwd as project root
-    const opts: Options = { repoRoot, quiet, debugPaths, dryRun, tsMode };
+    const opts: Options = { repoRoot, quiet, debugPaths, dryRun, tsMode, tag };
 
     if (cmd === 'inject') await inject(configPath, opts);
     else await assert(configPath, { ...opts, dryRun: false });

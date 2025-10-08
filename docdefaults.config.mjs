@@ -1,12 +1,12 @@
 export default {
-  constants: 'src/constants.ts',
+  defaults: 'src/constants.ts',
   tsconfig: 'tsconfig.json',
 
   targets: [
     {
-      source: 'src/types.ts',
+      types: 'src/types.ts',
       interface: 'CommonOptions',
-      defaults: 'RUN_DEFAULTS',
+      member: 'RUN_DEFAULTS',
       dts: 'dist/types.d.ts',
     },
   ],

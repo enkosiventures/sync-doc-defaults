@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { extractDeclarationBlock } from '../src/dts-ops/dry-run-extract.js';
+import { extractDeclarationBlock } from '../../src/dts-ops/dry-run-extract.js';
 
 const DTS = `
 // Some banner

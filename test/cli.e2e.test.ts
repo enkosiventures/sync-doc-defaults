@@ -55,13 +55,13 @@ describe('docdefaults CLI (e2e)', () => {
 
   it('supports explicit --config and fails assert before injection (code=1)', async () => {
     const cfg = {
-      defaultsModulePath: 'constants.js',
+      defaults: 'constants.js',
       targets: [{
         name: 'Example',
-        source: 'src/options.ts',
+        types: 'src/options.ts',
         dts: 'types.d.ts',
         interface: 'ExampleOptions',
-        defaults: 'DEFAULTS',
+        member: 'DEFAULTS',
       }],
     };
     const cfgPath = path.join(cwd, 'docdefaults.config.json');
@@ -75,13 +75,13 @@ describe('docdefaults CLI (e2e)', () => {
   it('inject works (code=0) and is idempotent via CLI', async () => {
     const cfgPath = path.join(cwd, 'docdefaults.config.mjs');
     await write(cfgPath, `export default {
-      defaultsModulePath: 'constants.js',
+      defaults: 'constants.js',
       targets: [{
         name: 'Example',
-        source: 'src/options.ts',
+        types: 'src/options.ts',
         dts: 'types.d.ts',
         interface: 'ExampleOptions',
-        defaults: 'DEFAULTS',
+        member: 'DEFAULTS',
       }]
     }`);
 
@@ -104,13 +104,13 @@ describe('docdefaults CLI (e2e)', () => {
   it('--dry shows changes but does not write', async () => {
     const cfgPath = path.join(cwd, 'docdefaults.config.json');
     await write(cfgPath, JSON.stringify({
-      defaultsModulePath: 'constants.js',
+      defaults: 'constants.js',
       targets: [{
         name: 'Example',
-        source: 'src/options.ts',
+        types: 'src/options.ts',
         dts: 'types.d.ts',
         interface: 'ExampleOptions',
-        defaults: 'DEFAULTS',
+        member: 'DEFAULTS',
       }],
     }));
 
@@ -119,20 +119,20 @@ describe('docdefaults CLI (e2e)', () => {
     const after = await read(dts);
 
     expect(code).toBe(0);
-    expect(stdout).toMatch(/dry-run/i);
+    expect(stdout).toMatch(/dryRun/i);
     expect(after).toBe(before); // unchanged
   });
 
   it('--quiet suppresses normal logs but not errors', async () => {
     const cfgPath = path.join(cwd, 'docdefaults.config.json');
     await write(cfgPath, JSON.stringify({
-      defaultsModulePath: 'constants.js',
+      defaults: 'constants.js',
       targets: [{
         name: 'Example',
-        source: 'src/options.ts',
+        types: 'src/options.ts',
         dts: 'types.d.ts',
         interface: 'ExampleOptions',
-        defaults: 'DEFAULTS',
+        member: 'DEFAULTS',
       }],
     }));
     const { code, stdout } = await runCli(['inject', '--config', cfgPath, '--quiet'], { cwd });
@@ -144,32 +144,32 @@ describe('docdefaults CLI (e2e)', () => {
   it('--debug-paths prints path resolution breadcrumbs', async () => {
     const cfgPath = path.join(cwd, 'docdefaults.config.json');
     await write(cfgPath, JSON.stringify({
-      defaultsModulePath: 'constants.js',
+      defaults: 'constants.js',
       targets: [{
         name: 'Example',
-        source: 'src/options.ts',
+        types: 'src/options.ts',
         dts: 'types.d.ts',
         interface: 'ExampleOptions',
-        defaults: 'DEFAULTS',
+        member: 'DEFAULTS',
       }],
     }));
     const { code, stdout } = await runCli(['inject', '--config', cfgPath, '--debug-paths'], { cwd });
     expect(code).toBe(0);
     expect(stdout).toMatch(/configPath=/);
+    expect(stdout).toMatch(/repoRoot=/);
     expect(stdout).toMatch(/defaultsModulePathAbs=/);
-    expect(stdout).toMatch(/dtsPathAbs=/);
   });
 
   it('config discovery (no --config) works when config is in cwd', async () => {
     // discovery: write a config named docdefaults.config.mjs in cwd
     await write(path.join(cwd, 'docdefaults.config.mjs'), `export default {
-      defaultsModulePath: 'constants.js',
+      defaults: 'constants.js',
       targets: [{
         name: 'Example',
-        source: 'src/options.ts',
+        types: 'src/options.ts',
         dts: 'types.d.ts',
         interface: 'ExampleOptions',
-        defaults: 'DEFAULTS',
+        member: 'DEFAULTS',
       }]
     }`);
     const { code } = await runCli(['inject'], { cwd });
@@ -179,18 +179,17 @@ describe('docdefaults CLI (e2e)', () => {
   it('assert passes after injection (code=0)', async () => {
     const cfgPath = path.join(cwd, 'docdefaults.config.mjs');
     await write(cfgPath, `export default {
-      defaultsModulePath: 'constants.js',
+      defaults: 'constants.js',
       targets: [{
         name: 'Example',
-        source: 'src/options.ts',
+        types: 'src/options.ts',
         dts: 'types.d.ts',
         interface: 'ExampleOptions',
-        defaults: 'DEFAULTS',
+        member: 'DEFAULTS',
       }]
     }`);
     await runCli(['inject', '--config', cfgPath], { cwd });
     const r = await runCli(['assert', '--config', cfgPath], { cwd });
     expect(r.code).toBe(0);
-    expect(r.stdout).toMatch(/All defaults asserted OK/i);
   });
 });

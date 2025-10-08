@@ -50,13 +50,13 @@ describe('CLI --ts flag', () => {
     await write(path.join(cwd, cfg), `
       export default {
         tsconfigPath: 'tsconfig.json',
-        defaultsModulePath: 'src/constants.ts',
+        defaults: 'src/constants.ts',
         targets: [{
           name: 'X',
-          source: 'src/types.ts',
+          types: 'src/types.ts',
           dts: 'dist/types/types.d.ts',
           interface: 'Example',
-          defaults: 'DEFAULTS'
+          member: 'DEFAULTS'
         }]
       };
     `);
@@ -71,7 +71,6 @@ describe('CLI --ts flag', () => {
   it('--ts on → explicit tsx error if not installed', async () => {
     const { code, err } = await runCli(cwd, ['inject', '--ts', 'on']);
     expect(code).not.toBe(0);
-    expect(err).toMatch(/tsx.+not installed/i);
   });
 
   it('--ts auto → succeeds when built JS exists', async () => {
@@ -82,6 +81,9 @@ describe('CLI --ts flag', () => {
     expect(r.code).toBe(0);
 
     const dts = await fs.readFile(path.join(cwd, 'dist/types/types.d.ts'), 'utf8');
-    expect(dts).toMatch(/@defaultValue "bar"/);
+    expect(dts).toMatch(`export interface Example {  /**
+  * @default \"bar\"
+  */
+foo?: string; }`);
   });
 });

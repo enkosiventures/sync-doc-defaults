@@ -1,10 +1,10 @@
 import { describe, it, expect } from 'vitest';
 
 // Import concrete TS modules (avoid barrel to prevent ESM .js resolution stalls)
-import { findInterfaceBody, listInterfaceProps } from '../src/dts-ops/locator.js';
-import { chooseDocIndent, extractLeadingJsdoc, formatDefaultLiteral, upsertDefaultForProp } from '../src/dts-ops/jsdoc.js';
-import { injectDefaultsIntoDts } from '../src/dts-ops/inject.js';
-import { assertDefaultsInDts } from '../src/dts-ops/assert.js';
+import { findInterfaceBody, listInterfaceProps } from '../../src/dts-ops/locator.js';
+import { chooseDocIndent, extractLeadingJsdoc, formatDefaultLiteral, upsertDefaultForProp } from '../../src/dts-ops/jsdoc.js';
+import { injectDefaultsIntoDts } from '../../src/dts-ops/inject.js';
+import { assertDefaultsInDts } from '../../src/dts-ops/assert.js';
 
 // Original interface—good for locator/quoting coverage
 const BASE_IFACE = `
