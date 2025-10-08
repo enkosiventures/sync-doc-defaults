@@ -52,9 +52,22 @@ This helps with changelogs and release notes.
 
 ### Releasing (maintainers)
 
-* Ensure CI is green
-* Bump version
-* `pnpm publish --access public`
-* Create a GitHub release with highlights
+We use **Changesets** for automated versioning & publishing.
+
+1. Ensure CI is green.
+2. For each user-visible change, authors should have added a changeset:
+   ```bash
+   pnpm changeset
+   ```
+
+(choose patch/minor/major and write a short description)
+3. Merge PRs as normal. The **Release** workflow will open/update a PR called **“Version Packages”**.
+4. Review that PR (version bump + CHANGELOG). When it looks good, **merge it**.
+5. CI on `main` will run `changeset publish` and publish to npm automatically.
+
+**Notes**
+
+* `assert` jobs in CI should remain on; publishing only happens on `main` with `NPM_TOKEN` present.
+* If you need to include manual changes in a release (rare), create a changeset yourself and commit it to the branch.
 
 Thanks 💙
