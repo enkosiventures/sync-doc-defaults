@@ -45,12 +45,16 @@
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js"
     },
+    "./cli": {
+      "import": "./dist/cli.js"
+    },
     "./types": {
       "types": "./dist/types.d.ts",
       "default": "./dist/types.d.ts"
     },
     "./package.json": "./package.json"
   },
+  "funding": "https://github.com/sponsors/enkosiventures",
   "scripts": {
     "build": "tsup",
     "build:watch": "tsup --watch",
@@ -64,8 +68,7 @@
     "prepublishOnly": "pnpm run build && pnpm run test"
   },
   "peerDependencies": {
-    "tsx": "^4.0.0",
-    "typescript": ">=5.0.0"
+    "tsx": "^4.0.0"
   },
   "peerDependenciesMeta": {
     "tsx": {

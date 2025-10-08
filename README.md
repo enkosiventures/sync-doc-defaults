@@ -62,6 +62,8 @@ pnpm add -D sync-doc-defaults
 npm i -D sync-doc-defaults
 ```
 
+* Requirements: Node 18+
+
 ---
 
 ## CLI Overview
@@ -219,6 +221,12 @@ If your defaults are TS and no compiled JS exists, `--ts auto` will use `tsx` if
 
 MIT © [Enkosi Ventures](https://enkosiventures.com).
 Contributions and PRs welcome!
+
+---
+
+## Contributing & Security
+
+See [CONTRIBUTING.md](./CONTRIBUTING.md) to get started, and [SECURITY.md](./SECURITY.md) for how to report vulnerabilities.
 
 ---
 
