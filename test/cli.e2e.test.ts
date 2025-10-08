@@ -10,7 +10,7 @@ const FIX = path.resolve(__dirname, 'fixtures');
 function runCli(args: string[], opts: { cwd: string; env?: NodeJS.ProcessEnv }):
   Promise<{ code: number; stdout: string; stderr: string }> {
   return new Promise((resolve) => {
-    const child = execFile(process.execPath, [BIN, ...args], {
+    execFile(process.execPath, [BIN, ...args], {
       cwd: opts.cwd,
       env: { ...process.env, ...(opts.env || {}) },
     }, (err, stdout, stderr) => {

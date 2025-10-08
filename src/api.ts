@@ -9,9 +9,9 @@ import {
   listInterfaceProps,
 } from './dts-ops/index.js';
 
+import type { DocDefaultsConfig, Options, PreferredTag, RunOptions, TsMode } from './types.js';
 import { loadModuleSmart } from './source-loader.js';
 import { findNearestTsconfig, loadTsProject } from './tsconfig-resolver.js';
-import { DocDefaultsConfig, Options, PreferredTag, RunOptions, TsMode } from './types.js';
 import { resolveOptions } from './config.js';
 import { extractDeclarationBlock } from './dts-ops/dry-run-extract.js';
 import { Logger } from './log.js';

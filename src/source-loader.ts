@@ -2,9 +2,9 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { createRequire } from 'node:module';
+import type { TsMode } from './types.js';
 import { inferBuiltJsForTs } from './tsconfig-resolver.js';
 import { Logger } from './log.js';
-import { TsMode } from './types.js';
 
 
 export function resolveTsxFrom(repoRoot: string): string | undefined {

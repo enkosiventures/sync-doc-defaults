@@ -69,7 +69,7 @@ describe('CLI --ts flag', () => {
   });
 
   it('--ts on → explicit tsx error if not installed', async () => {
-    const { code, err } = await runCli(cwd, ['inject', '--ts', 'on']);
+    const { code } = await runCli(cwd, ['inject', '--ts', 'on']);
     expect(code).not.toBe(0);
   });
 

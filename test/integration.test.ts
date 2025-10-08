@@ -100,7 +100,7 @@ describe('ConsentOptions inject (bottom-up)', () => {
     });
     // doc lines should begin with the same 4-space indent before the '*' lines
     // We also expect a space after '*' (the style in the original)
-    const block = r.updatedText.split(/\n/).slice(
+    r.updatedText.split(/\n/).slice(
       r.updatedText.indexOf('initialStatus') // quick segment check
     );
     expect(r.updatedText).toMatch(/\n {4}\/\*\*\n {4} \* /);        // opening + a starred line with ' * '

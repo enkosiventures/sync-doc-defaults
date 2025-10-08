@@ -1,5 +1,5 @@
 import path from 'node:path';
-import { Jsdoc, PreferredTag } from '../types.js';
+import type { Jsdoc, PreferredTag } from '../types.js';
 
 
 /** Choose the indent for the new doc: prefer the property's indent.

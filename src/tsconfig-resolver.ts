@@ -52,7 +52,7 @@ export function inferBuiltJsForTs(args: {
   repoRoot: string;
   tsFileAbs: string;
 }): string | undefined {
-  const { tsRootDir, tsOutDir, tsDeclarationDir, repoRoot, tsFileAbs } = args;
+  const { tsRootDir, tsOutDir, tsDeclarationDir, tsFileAbs } = args;
   const outBase = tsOutDir ?? tsDeclarationDir;
   const root = tsRootDir;
   if (!outBase || !root) return undefined;

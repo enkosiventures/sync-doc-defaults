@@ -1,8 +1,9 @@
 import path from 'node:path';
+import type { Options, TsMode } from './types.js';
 import { discoverConfig } from './config.js';
 import { inject, assert } from './api.js';
-import { Options, TsMode } from './types.js';
 import { EXIT_CODES } from './constants.js';
+
 
 // exit codes:
 // 0 = success

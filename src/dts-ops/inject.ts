@@ -1,4 +1,4 @@
-import { DtsEditResult, PreferredTag } from '../types.js';
+import type { DtsEditResult, PreferredTag } from '../types.js';
 import { formatDefaultLiteral, upsertDefaultForProp, extractLeadingJsdoc, readDefaultLiteralFromJsdoc } from './jsdoc.js';
 import { listInterfaceProps } from './locator.js';
 

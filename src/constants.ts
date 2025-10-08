@@ -1,4 +1,4 @@
-import { PreferredTag, RunOptions, TsMode } from "./types.js";
+import type { PreferredTag, RunOptions, TsMode } from "./types.js";
 
 
 export const RUN_DEFAULTS: Required<
