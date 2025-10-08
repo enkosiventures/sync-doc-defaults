@@ -8,7 +8,7 @@ import {
   loadTsProject,
   inferDtsFromSrc,
   inferBuiltJsForTs
-} from '../src/tsconfig-resolver.js';
+} from '../../src/infra/tsconfig-resolver.js';
 
 let TMP = '';
 async function mkTmp() {

@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import fs from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
-import { discoverConfig, loadConfig } from '../src/config.js';
+import { discoverConfig, loadConfig } from '../../src/infra/config.js';
 
 async function mkTmpDir(prefix = 'config-tests-') {
   const dir = await fs.mkdtemp(path.join(os.tmpdir(), prefix));

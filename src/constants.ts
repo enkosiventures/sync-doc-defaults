@@ -15,12 +15,10 @@ export const CONFIG_FILENAME_CANDIDATES = [
   'docdefaults.config.mjs',
   'docdefaults.config.cjs',
   'docdefaults.config.js',
-  'docdefaults.config.ts',
   'docdefaults.config.json',
   'sync-doc-defaults.config.mjs',
   'sync-doc-defaults.config.cjs',
   'sync-doc-defaults.config.js',
-  'sync-doc-defaults.config.ts',
   'sync-doc-defaults.config.json',
 ];
 

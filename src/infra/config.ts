@@ -1,8 +1,8 @@
 import fs from 'node:fs';
 import path, { resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
-import type { DocDefaultsConfig, Options, RunOptions } from './types.js';
-import { CONFIG_FILENAME_CANDIDATES, RUN_DEFAULTS } from './constants.js';
+import type { DocDefaultsConfig, Options, RunOptions } from '../types.js';
+import { CONFIG_FILENAME_CANDIDATES, RUN_DEFAULTS } from '../constants.js';
 
 
 export async function discoverConfig(startDir: string): Promise<string | undefined> {

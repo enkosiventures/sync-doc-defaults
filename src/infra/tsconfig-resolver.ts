@@ -1,7 +1,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
-import type { TsMode, LoadedTsProject } from './types.js';
-import { TSCONFIG_FILENAME_CANDIDATES } from './constants.js';
+import type { TsMode, LoadedTsProject } from '../types.js';
+import { TSCONFIG_FILENAME_CANDIDATES } from '../constants.js';
 
 
 export function findNearestTsconfig(startDir: string): string | undefined {

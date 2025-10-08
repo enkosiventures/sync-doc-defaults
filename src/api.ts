@@ -10,11 +10,11 @@ import {
 } from './dts-ops/index.js';
 
 import type { DocDefaultsConfig, Options, PreferredTag, RunOptions, TsMode } from './types.js';
-import { loadModuleSmart } from './source-loader.js';
-import { findNearestTsconfig, loadTsProject } from './tsconfig-resolver.js';
-import { resolveOptions } from './config.js';
+import { loadModuleSmart } from './infra/source-loader.js';
+import { findNearestTsconfig, loadTsProject } from './infra/tsconfig-resolver.js';
+import { resolveOptions } from './infra/config.js';
 import { extractDeclarationBlock } from './dts-ops/dry-run-extract.js';
-import { Logger } from './log.js';
+import { Logger } from './infra/log.js';
 import { CONFIG_FILENAME_CANDIDATES } from './constants.js';
 
 

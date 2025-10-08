@@ -3,7 +3,7 @@ import fs from 'node:fs/promises';
 import path from 'node:path';
 import os from 'node:os';
 
-import { loadModuleSmart, getByPath, assertPlainObject, resolveTsxFrom } from '../src/source-loader.js';
+import { loadModuleSmart, getByPath, assertPlainObject, resolveTsxFrom } from '../../src/infra/source-loader.js';
 
 let TMP = '';
 async function mkTmp() {

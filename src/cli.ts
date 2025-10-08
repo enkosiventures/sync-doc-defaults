@@ -1,6 +1,6 @@
 import path from 'node:path';
 import type { Options, TsMode } from './types.js';
-import { discoverConfig } from './config.js';
+import { discoverConfig } from './infra/config.js';
 import { inject, assert } from './api.js';
 import { EXIT_CODES } from './constants.js';
 
@@ -27,8 +27,9 @@ Commands:
 
 Options:
   -c, --config <file>   Path to config file.
-                        Defaults to searching upward for:
-                          docdefaults.config.(mjs|cjs|js|json)
+                        Defaults to searching upward for either:
+                          * docdefaults.config.(mjs|cjs|js|json)
+                          * sync-doc-defaults.config.(mjs|cjs|js|json)
   --dry                 (inject) Show changes but don’t write files
   --quiet               Minimal output
   --debug-paths         Print path-resolution breadcrumbs
