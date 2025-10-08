@@ -10,7 +10,7 @@ import {
 
 import { loadModuleSmart } from './source-loader.js';
 import { findNearestTsconfig, loadTsProject } from './tsconfig-resolver.js';
-import { DefaultTag, DocDefaultsConfig, Options, RunOptions, TsMode } from './types.js';
+import { DocDefaultsConfig, Options, PreferredTag, RunOptions, TsMode } from './types.js';
 import { resolveOptions } from './resolveOptions.js';
 import { extractDeclarationBlock } from './dts-ops/dry-run-extract.js';
 import { Logger } from './log.js';
@@ -26,7 +26,7 @@ export async function inject(configPath?: string, opts: RunOptions = {}) {
   const options = resolveOptions(opts);
   const logger = new Logger(options.quiet, options.debugPaths);
   const { cfg, repoRoot } = await loadConfigResolved(configPath, options);
-  const tag: DefaultTag = opts.tag ?? cfg.tag ?? 'default';
+  const tag: PreferredTag = opts.tag ?? cfg.tag ?? 'default';
 
   // Resolve TypeScript paths (rootDir/outDir/declarationDir)
   const tsconfigPathAbs = await resolveTsconfigPathAbs(repoRoot, cfg.tsconfig);

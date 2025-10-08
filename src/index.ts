@@ -5,7 +5,7 @@ export { assert, inject } from './api.js';
 // public enums/types/interfaces
 export { 
   TsMode,
-  DefaultTag,
+  PreferredTag,
   TargetConfig,
   DocDefaultsConfig,
   InjectTargetResult,

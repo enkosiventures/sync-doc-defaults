@@ -1,5 +1,5 @@
 import path from 'node:path';
-import { DefaultTag, Jsdoc } from '../types.js';
+import { Jsdoc, PreferredTag } from '../types.js';
 
 
 /** Choose the indent for the new doc: prefer the property's indent.
@@ -81,8 +81,6 @@ export function extractLeadingJsdoc(
   return {};
 }
 
-
-
 export function parseJsdoc(raw: string | undefined): Jsdoc {
   if (!raw) return { description: [], tags: [] };
 
@@ -102,7 +100,9 @@ export function parseJsdoc(raw: string | undefined): Jsdoc {
   const tags: Array<{ tag: string; text: string }> = [];
 
   for (const line of body) {
-    const m = line.match(/^@(\w+)\s*(.*)$/);
+    // Allow leading spaces before @tag so single-line docs like
+    // "/**  @defaultValue \"x\" */" are parsed as tags, not description.
+    const m = line.match(/^\s*@(\w+)\s*(.*)$/);
     if (m) tags.push({ tag: m[1], text: (m[2] ?? '').trim() });
     else description.push(line);
   }
@@ -123,7 +123,7 @@ export function renderJsdocCanonical(opts: {
   description: string[];
   tags: Array<{ tag: string; text: string }>;
   defaultLiteral: string;
-  preferredTag: DefaultTag;
+  preferredTag: PreferredTag;
 }): string {
   const { indent, starPad = ' ', description, tags, defaultLiteral, preferredTag } = opts;
 
@@ -155,7 +155,7 @@ export function upsertDefaultForProp(
   propHeadStart: number,
   propIndent: string,
   literal: string,
-  preferredTag: DefaultTag
+  preferredTag: PreferredTag,
 ): string {
   const found = extractLeadingJsdoc(fullText, propHeadStart);
 
@@ -185,8 +185,6 @@ export function upsertDefaultForProp(
   const sep = afterChar === '\n' ? '' : '\n';
   return fullText.slice(0, propHeadStart) + next + sep + fullText.slice(propHeadStart);
 }
-
-
 
 /** Extract existing default literal text from a JSDoc (accepts @default or @defaultValue). */
 export function readDefaultLiteralFromJsdoc(raw: string | undefined): string | undefined {

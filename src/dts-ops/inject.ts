@@ -1,12 +1,7 @@
-import { DefaultTag } from '../types.js';
+import { DtsEditResult, PreferredTag } from '../types.js';
 import { formatDefaultLiteral, upsertDefaultForProp, extractLeadingJsdoc, readDefaultLiteralFromJsdoc } from './jsdoc.js';
 import { listInterfaceProps } from './locator.js';
 
-export type DtsEditResult = {
-  updatedText: string;
-  updatedCount: number;
-  missing: Array<{ interfaceName: string; prop: string }>;
-};
 
 /**
  * Inject default literals into a `.d.ts` text for a given interface.
@@ -17,7 +12,7 @@ export function injectDefaultsIntoDts(params: {
   dtsText: string;
   interfaceName: string;
   defaults: Record<string, unknown>;
-  preferredTag: DefaultTag;
+  preferredTag: PreferredTag;
 }): DtsEditResult {
   const { dtsText, interfaceName, defaults, preferredTag } = params;
 
@@ -68,10 +63,22 @@ export function injectDefaultsIntoDts(params: {
     // Re-check current value from the current text (not the original)
     const { text: jsdocRaw } = extractLeadingJsdoc(text, t.headStart);
     const found = readDefaultLiteralFromJsdoc(jsdocRaw);
-    if (found === t.expected) continue;
+
+    // detect which tag kinds are present (works for both single-line and multi-line docs)
+    const hasDefault = /@default(\s|$)/m.test(jsdocRaw ?? '');
+    const hasDefaultValue = /@defaultValue(\s|$)/m.test(jsdocRaw ?? '');
+    const hasPreferred = preferredTag === 'default' ? hasDefault : hasDefaultValue;
+    const hasOther     = preferredTag === 'default' ? hasDefaultValue : hasDefault;
+
+    // only skip when the value matches AND we're already using the preferred tag
+    // (i.e., nothing to normalize). Otherwise, call upsert to normalize.
+    if (found === t.expected && hasPreferred && !hasOther) {
+      continue;
+    }
 
     text = upsertDefaultForProp(text, t.headStart, t.indent, t.expected, preferredTag);
     updated++;
+
 
     // For maximal safety at the cost of performance,
     // recompute the latest headStart here instead of sorting:

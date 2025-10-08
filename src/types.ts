@@ -21,7 +21,7 @@ export type TsMode = 'auto' | 'on' | 'off';
  *  - `@default` is the modern, widely-supported choice.
  *  - `@defaultValue` is sometimes preferred by older tooling.
  */
-export type DefaultTag = 'default' | 'defaultValue';
+export type PreferredTag = 'default' | 'defaultValue';
 
 /** Fields shared by public & internal options. */
 export interface CommonOptions {
@@ -45,7 +45,7 @@ export interface CommonOptions {
   /**
    * Which JSDoc tag to render for defaults. See {@link DefaultTag}.
    */
-  tag?: DefaultTag;
+  tag?: PreferredTag;
 }
 
 /** Public-facing options (CLI + library entry points). */
@@ -130,7 +130,7 @@ export interface DocDefaultsConfig {
   /**
    * Preferred JSDoc tag to render when injecting defaults.
    */
-  tag?: DefaultTag;
+  tag?: PreferredTag;
 
   /**
    * Optional human-readable project label (appears in CLI output).
@@ -250,3 +250,9 @@ export interface AssertResult {
   /** Detailed per-target mismatches. */
   targetResults: AssertTargetResult[];
 }
+
+export type DtsEditResult = {
+  updatedText: string;
+  updatedCount: number;
+  missing: Array<{ interfaceName: string; prop: string }>;
+};
