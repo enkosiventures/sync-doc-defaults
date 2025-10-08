@@ -2,6 +2,7 @@ import path from 'node:path';
 import { discoverConfig } from './config.js';
 import { inject, assert } from './api.js';
 import { Options, TsMode } from './types.js';
+import { EXIT_CODES } from './constants.js';
 
 // exit codes:
 // 0 = success
@@ -10,7 +11,7 @@ import { Options, TsMode } from './types.js';
 
 type Subcommand = 'inject' | 'assert';
 
-function usage(msg?: string): never {
+function usage(msg?: string, code?: number): never {
   if (msg) console.error(msg);
   console.error(`
 sync-doc-defaults v1.0.0
@@ -46,7 +47,7 @@ Examples:
   sdd inject --dry --debug-paths
   pnpm dlx sync-doc-defaults inject -c ./docdefaults.config.mjs
 `);
-  process.exit(1);
+  process.exit(code ?? EXIT_CODES.VALIDATION_ERROR);
 }
 
 function coerceTsMode(val: any | undefined): TsMode | undefined {
@@ -85,7 +86,7 @@ async function main() {
       const found = await discoverConfig(process.cwd());
       if (!found) {
         console.error('[sync-doc-defaults] No config found. Looked for docdefaults.config.(mjs|cjs|js|json) up from cwd.');
-        process.exit(2);
+        process.exit(EXIT_CODES.CONFIG_NOT_FOUND);
       }
       configPath = found;
     }
@@ -96,124 +97,12 @@ async function main() {
     if (cmd === 'inject') await inject(configPath, opts);
     else await assert(configPath, { ...opts, dryRun: false });
 
-    process.exit(0);
+    process.exit(EXIT_CODES.SUCCESS);
   } catch (err: any) {
-    const code = typeof err?.code === 'number' ? err.code : 1;
+    const code = typeof err?.code === 'number' ? err.code : EXIT_CODES.GENERAL_ERROR;
     console.error(`[sync-doc-defaults] ${err?.message ?? err}`);
     process.exit(code);
   }
 }
 
 main();
-
-
-
-
-
-
-
-
-
-
-// #!/usr/bin/env node
-// import { inject, assert as assertCmd } from './index.js';
-
-// // exit codes:
-// // 0 = success
-// // 1 = assertion/validation failure
-// // 2 = config not found
-
-
-// function parseArgs(argv: string[]) {
-//   const out: any = { _: [] as string[] };
-//   for (let i = 0; i < argv.length; i++) {
-//     const a = argv[i];
-//     if (!a.startsWith('-')) { out._.push(a); continue; }
-//     if (a === '-c' || a === '--config') out.config = argv[++i];
-//     else if (a === '--dry') out.dry = true;
-//     else if (a === '--quiet') out.quiet = true;
-//     else if (a === '--debug-paths') out.debugPaths = true;
-//     else if (a === '--ts') out.ts = (argv[++i] ?? 'auto');
-//     else {
-//       console.error(`Unknown option: ${a}\n`);
-//       printUsage();
-//       process.exitCode = 1;
-//       return out;
-//     }
-//   }
-//   return out;
-// }
-
-// function printUsage() {
-//   console.log(
-// `Usage:
-//   docdefaults <inject|assert> [options]
-
-// Options:
-//   -c, --config <file>   Explicit config file (defaults to searching upward for docdefaults.config.*)
-//   --dry                 (inject) Show changes but do not write files
-//   --quiet               Minimal output
-//   --debug-paths         Verbose resolution info
-//   --ts <auto|on|off>    Override TS handling mode (default: auto)
-
-// Examples:
-//   docdefaults inject
-//   docdefaults assert --quiet
-//   docdefaults inject --dry --debug-paths
-// `);
-// }
-
-// async function main() {
-//   const [, , subcmd, ...rest] = process.argv;
-//   if (!subcmd || (subcmd !== 'inject' && subcmd !== 'assert')) {
-//     printUsage();
-//     process.exitCode = 1;
-//     return;
-//   }
-
-//   const args = parseArgs(rest);
-//   if (!args) return;
-
-//   const tsMode = (args.ts === 'on' || args.ts === 'off' || args.ts === 'auto') ? args.ts : undefined;
-
-//   const common = {
-//     repoRoot: process.cwd(),
-//     quiet: !!args.quiet,
-//     debugPaths: !!args.debugPaths,
-//     tsMode,
-//   } as const;
-
-//   try {
-//     if (subcmd === 'inject') {
-//       const r = await inject(args.config, { ...common, dryRun: !!args.dry });
-//       if (!args.quiet) {
-//         // after receiving InjectResult r
-//         const label = r.projectLabel ?? 'Project';
-//         const files = r.targetResults.length;
-//         console.log(`[sync-doc-defaults] ${label}: injected ${r.updated} @default update(s) across ${files} file(s)${args.dry ? ' (dry-run)' : ''}`);
-
-//         // const note = args.dry ? ' (dry-run)' : '';
-//         // console.log(`[sync-doc-defaults] ${r.projectLabel ?? 'Project'}: injected ${r.updated} @default update(s) → ${r.dtsPath}${note}`);
-//       }
-//       // Dry or not, success is exit code 0
-//       process.exitCode = 0;
-//     } else {
-//       await assertCmd(args.config, common);
-//       if (!args.quiet) {
-//         console.log('[sync-doc-defaults] All defaults asserted OK');
-//       }
-//       process.exitCode = 0;
-//     }
-//   } catch (err: any) {
-//     if (!args.quiet) console.error(err?.message ?? String(err));
-//     process.exitCode = 1;
-//   }
-// }
-
-// main().catch((e) => {
-//   console.error(e);
-//   process.exitCode = 1;
-// });
-
-
-

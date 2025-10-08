@@ -12,9 +12,10 @@ import {
 import { loadModuleSmart } from './source-loader.js';
 import { findNearestTsconfig, loadTsProject } from './tsconfig-resolver.js';
 import { DocDefaultsConfig, Options, PreferredTag, RunOptions, TsMode } from './types.js';
-import { resolveOptions } from './resolveOptions.js';
+import { resolveOptions } from './config.js';
 import { extractDeclarationBlock } from './dts-ops/dry-run-extract.js';
 import { Logger } from './log.js';
+import { CONFIG_FILENAME_CANDIDATES } from './constants.js';
 
 
 // ===== Public API =====
@@ -307,18 +308,10 @@ function rel(base: string, p: string) {
 async function findConfigPath(startDir: string, explicit?: string) {
   if (explicit) return path.resolve(explicit);
 
-  const candidates = [
-    'docdefaults.config.mjs',
-    'docdefaults.config.cjs',
-    'docdefaults.config.js',
-    'docdefaults.config.ts',
-    'docdefaults.config.json',
-  ];
-
   let dir = startDir;
   // walk up until filesystem root
   while (true) {
-    for (const name of candidates) {
+    for (const name of CONFIG_FILENAME_CANDIDATES) {
       const p = path.join(dir, name);
       try {
         await fs.access(p);

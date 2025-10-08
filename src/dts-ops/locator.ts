@@ -21,13 +21,6 @@ export function findInterfaceBody(text: string, interfaceName: string): { bodySt
   return undefined;
 }
 
-function indentOfLine(text: string, headStart: number): string {
-  const lineStart = text.lastIndexOf('\n', headStart - 1) + 1;
-  const leading = text.slice(lineStart, headStart);
-  const m = leading.match(/^[ \t]*/);
-  return m ? m[0] : '';
-}
-
 /** Enumerate property heads within an interface body (simple .d.ts shapes). */
 export function listInterfaceProps(
   text: string,

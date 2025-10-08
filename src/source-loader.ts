@@ -4,6 +4,7 @@ import { pathToFileURL } from 'node:url';
 import { createRequire } from 'node:module';
 import { inferBuiltJsForTs } from './tsconfig-resolver.js';
 import { Logger } from './log.js';
+import { TsMode } from './types.js';
 
 
 export function resolveTsxFrom(repoRoot: string): string | undefined {
@@ -27,7 +28,7 @@ export async function loadModuleSmart(
     tsRootDir?: string;
     tsOutDir?: string;
     tsDeclarationDir?: string;
-    tsMode?: 'auto' | 'on' | 'off';
+    tsMode?: TsMode;
     quiet?: boolean;
     debug?: boolean;
   }

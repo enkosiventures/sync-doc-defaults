@@ -1,17 +1,13 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import type { TsMode, LoadedTsProject } from './types.js';
+import { TSCONFIG_FILENAME_CANDIDATES } from './constants.js';
+
 
 export function findNearestTsconfig(startDir: string): string | undefined {
-  const NAMES = [
-    'tsconfig.docdefaults.json',
-    'tsconfig.build.json',
-    'tsconfig.types.json',
-    'tsconfig.json',
-  ];
   let dir = startDir;
   while (true) {
-    for (const name of NAMES) {
+    for (const name of TSCONFIG_FILENAME_CANDIDATES) {
       const p = path.join(dir, name);
       if (fs.existsSync(p)) return p;
     }
@@ -43,7 +39,6 @@ export function loadTsProject(tsconfigPathAbs: string | undefined): LoadedTsProj
 export function inferDtsFromSrc(ts: LoadedTsProject, srcAbs: string): string | undefined {
   const outBase = ts.declarationDir ?? ts.outDir;
   const root = ts.rootDir;
-  console.warn(`ts: ${JSON.stringify(ts, null, 2)}, srcAbs: ${srcAbs}`);
   if (!outBase || !root) return undefined;
   const rel = path.relative(root, srcAbs);
   if (rel.startsWith('..')) return undefined;

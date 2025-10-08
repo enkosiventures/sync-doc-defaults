@@ -1,7 +1,8 @@
 import { extractLeadingJsdoc, readDefaultLiteralFromJsdoc, formatDefaultLiteral } from './jsdoc.js';
 import { listInterfaceProps } from './locator.js';
 
-export type Mismatch = {
+
+type Mismatch = {
   interfaceName: string;
   prop: string;
   expected: string;
