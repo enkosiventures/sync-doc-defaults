@@ -310,7 +310,7 @@ function selectDefaults(mod: any, pathExpr: string): unknown {
     if (cur == null && parts.length === 1 && (mod?.default != null)) {
       try {
         cur = mod.default[parts[0]];
-      } catch (e) {
+      } catch (_) {
         // Getter on default export threw
         return undefined;
       }
