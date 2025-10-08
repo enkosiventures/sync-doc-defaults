@@ -87,8 +87,8 @@ describe('docdefaults CLI (e2e)', () => {
 
     // First inject
     let r = await runCli(['inject', '--config', cfgPath], { cwd });
-    expect(r.code).toBe(0);
     expect(r.stdout).toMatch(/injected 3 @default update/);
+    expect(r.code).toBe(0);
     const first = await read(dts);
     expect(first).toContain('@default "bar"');
     expect(first).toContain('@default 42');
