@@ -44,7 +44,7 @@ export function injectDefaultsIntoDts(params: {
     }
     const expected = formatDefaultLiteral(value);
 
-    // If already correct, skip work (we’ll check against the doc next)
+    // If already correct, skip work (we'll check against the doc next)
     tasks.push({
       prop,
       headStart: p.headStart,
@@ -53,7 +53,7 @@ export function injectDefaultsIntoDts(params: {
     });
   }
 
-  // Sort bottom→top so earlier indices aren’t invalidated by later edits
+  // Sort bottom→top so earlier indices aren't invalidated by later edits
   tasks.sort((a, b) => b.headStart - a.headStart);
 
   let text = dtsText;

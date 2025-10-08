@@ -69,7 +69,7 @@ export interface Options extends CommonOptions {
 export type Jsdoc = {
   /** Lines of human description above the tags (no leading `*`). */
   description: string[];
-  /** Structured tags (`@tag …`) preserved in order of appearance. */
+  /** Structured tags (`@tag...`) preserved in order of appearance. */
   tags: Array<{ tag: string; text: string }>;
 };
 

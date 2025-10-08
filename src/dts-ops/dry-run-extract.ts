@@ -60,7 +60,7 @@ function skipSpace(s: string, i: number) {
   return i;
 }
 
-/** If there’s a JSDoc immediately above declStart (only whitespace between), return its [start,end). */
+/** If there's a JSDoc immediately above declStart (only whitespace between), return its [start,end). */
 function findLeadingJsdoc(text: string, declStart: number): { start: number; end: number } | null {
   // Walk back over whitespace
   let i = declStart - 1;
@@ -68,7 +68,7 @@ function findLeadingJsdoc(text: string, declStart: number): { start: number; end
   // Expect '*/'
   if (i < 1 || text[i] !== '/' || text[i - 1] !== '*') return null;
 
-  // We’re just before the closing '*/'. Find the opening '/**'
+  // We're just before the closing '*/'. Find the opening '/**'
   let end = i + 1; // end is after '/'
   i -= 2; // move left of '*/'
   // Scan backwards for '/**'

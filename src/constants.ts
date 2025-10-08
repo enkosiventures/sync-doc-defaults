@@ -28,7 +28,6 @@ export const TSCONFIG_FILENAME_CANDIDATES = [
   'tsconfig.build.json',
   'tsconfig.types.json',
   'tsconfig.json',
-  'tsconfig.base.json',
 ];
 
 

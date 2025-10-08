@@ -31,7 +31,7 @@ Options:
                         Defaults to searching upward for either:
                           * docdefaults.config.(mjs|cjs|js|json)
                           * sync-doc-defaults.config.(mjs|cjs|js|json)
-  --dry                 (inject) Show changes but don’t write files
+  --dry                 (inject) Show changes but don't write files
   --quiet               Minimal output
   --debug-paths         Print path-resolution breadcrumbs
   --ts <auto|on|off>    TypeScript handling mode (default: auto)
@@ -73,7 +73,6 @@ async function main() {
     let tsMode: TsMode | undefined;
     let tag: 'default' | 'defaultValue' | undefined;
 
-    console.warn(argv);
     for (let i = 1; i < argv.length; i++) {
       const a = argv[i];
       if ((a === '-c' || a === '--config') && argv[i + 1]) { configPath = path.resolve(argv[++i]); continue; }

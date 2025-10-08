@@ -34,7 +34,7 @@ export function listInterfaceProps(
 
   // readonly?  "foo" | 'foo' | foo  with optional ?, colon, then until semicolon.
   const propRe =
-    /^[ \t]*(?:readonly\s+)?(?:"([^"]+)"|'([^']+)'|([A-Za-z_$][\w$]*))\??\s*:\s*[^;{]+;/gm;
+  /^[ \t]*(?:readonly\s+)?(?:"([^"]+)"|'([^']+)'|([A-Za-z_$][\w$]*))\??\s*:\s*[^;{]{1,5000};/gm;
 
   const out: Array<{ name: string; headStart: number; indent: string }> = [];
   let m: RegExpExecArray | null;

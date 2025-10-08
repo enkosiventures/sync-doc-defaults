@@ -38,7 +38,7 @@ function validateConfig(cfg: any, fromPath: string): asserts cfg is DocDefaultsC
   if (!Array.isArray(cfg.targets)) throw new Error(`Invalid config in ${fromPath}: "targets" must be an array`);
   for (const t of cfg.targets) {
     if (!t || typeof t !== 'object') throw new Error(`Invalid target in ${fromPath}: item is not an object`);
-    if (typeof t.name !== 'string') throw new Error(`Invalid target in ${fromPath}: "name" must be a string`);
+    if (t.name && typeof t.name !== 'string') throw new Error(`Invalid target in ${fromPath}: "name" must be a string`);
     if (typeof t.types !== 'string') throw new Error(`Invalid target "${t.name}": "types" must be a string`);
     if (t.dts && typeof t.dts !== 'string') throw new Error(`Invalid target "${t.name}": "dts" must be a string if provided`);
     if (typeof t.interface !== 'string') throw new Error(`Invalid target "${t.name}": "interface" must be a string`);

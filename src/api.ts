@@ -35,7 +35,7 @@ export async function inject(configPath?: string, opts: RunOptions = {}) {
   const ts = loadTsProject(tsconfigPathAbs);
 
   // Load defaults module (built-js preferred, TS fallback via tsx)
-  const defaultsModulePathAbs = path.resolve(repoRoot, cfg.defaults);
+  const defaultsModulePathAbs = validatePathWithinRoot(repoRoot, cfg.defaults, 'defaults');
   const defaultsModule = await loadModuleSmart(defaultsModulePathAbs, {
     repoRoot,
     tsRootDir: ts.rootDir,
@@ -61,7 +61,7 @@ export async function inject(configPath?: string, opts: RunOptions = {}) {
   for (const t of cfg.targets) {
     const name = t.name ?? t.interface;
 
-    const srcAbs = path.resolve(repoRoot, t.types);
+    const srcAbs = validatePathWithinRoot(repoRoot, t.types, 'types');
     const dtsPathAbs = await resolveDtsPathAbs({
       repoRoot,
       tsRootDir: ts.rootDir,
@@ -142,7 +142,7 @@ export async function assert(configPath?: string, opts: RunOptions = {}) {
   const tsconfigPathAbs = await resolveTsconfigPathAbs(repoRoot, cfg.tsconfig);
   const ts = loadTsProject(tsconfigPathAbs);
 
-  const defaultsModulePathAbs = path.resolve(repoRoot, cfg.defaults);
+  const defaultsModulePathAbs = validatePathWithinRoot(repoRoot, cfg.defaults, 'defaults');
   const defaultsModule = await loadModuleSmart(defaultsModulePathAbs, {
     repoRoot,
     tsRootDir: ts.rootDir,
@@ -204,6 +204,17 @@ export async function assert(configPath?: string, opts: RunOptions = {}) {
 }
 
 // ===== Internals =====
+
+function validatePathWithinRoot(rootDir: string, targetPath: string, label: string): string {
+  const resolved = path.resolve(rootDir, targetPath);
+  const normalizedRoot = path.normalize(rootDir) + path.sep;
+  const normalizedResolved = path.normalize(resolved) + (resolved.endsWith(path.sep) ? path.sep : '');
+  
+  if (!normalizedResolved.startsWith(normalizedRoot)) {
+    throw new Error(`[sync-doc-defaults] Security: ${label} path escapes project root: ${targetPath}`);
+  }
+  return resolved;
+}
 
 async function loadConfigResolved(configPath: string | undefined, opts: Options) {
   const logger = new Logger(opts.quiet, opts.debugPaths);
@@ -272,13 +283,13 @@ async function resolveDtsPathAbs(args: {
   dtsPath?: string;
 }) {
   const { repoRoot, tsRootDir, tsDeclarationDir, typesPath, dtsPath } = args;
-  if (dtsPath) return path.resolve(repoRoot, dtsPath);
+  if (dtsPath) return validatePathWithinRoot(repoRoot, dtsPath, 'dts');
   if (!tsRootDir || !tsDeclarationDir) {
     throw new Error(
       `[sync-doc-defaults] could not infer .d.ts for ${typesPath}. Ensure tsconfig has "rootDir" and "declarationDir", or provide "dtsPath".`
     );
   }
-  const srcAbs = path.resolve(repoRoot, typesPath);
+  const srcAbs = validatePathWithinRoot(repoRoot, typesPath, 'types');
   const relFromRoot = path.relative(tsRootDir, srcAbs); // e.g. consent/types.ts
   const out = path.resolve(tsDeclarationDir, relFromRoot).replace(/\.tsx?$/i, '.d.ts');
   return out;
@@ -288,14 +299,28 @@ async function resolveDtsPathAbs(args: {
 function selectDefaults(mod: any, pathExpr: string): unknown {
   const parts = pathExpr.split('.');
   let cur = mod;
-  for (const p of parts) {
-    if (cur == null) return undefined;
-    cur = cur[p];
+  
+  try {
+    for (const p of parts) {
+      if (cur == null) return undefined;
+      cur = cur[p];
+    }
+    
+    // if the symbol is the default export itself
+    if (cur == null && parts.length === 1 && (mod?.default != null)) {
+      try {
+        cur = mod.default[parts[0]];
+      } catch (e) {
+        // Getter on default export threw
+        return undefined;
+      }
+    }
+  } catch (e) {
+    // Getter or proxy trap threw while accessing property
+    console.error(`[sync-doc-defaults] Error accessing defaults path "${pathExpr}":`, e);
+    return undefined;
   }
-  // if the symbol is the default export itself
-  if (cur == null && parts.length === 1 && (mod?.default != null)) {
-    cur = mod.default[parts[0]];
-  }
+  
   return cur;
 }
 

@@ -12,7 +12,7 @@ export function chooseDocIndent(propIndent: string, existingDocIndent?: string):
     : propIndent;
 }
 
-/** Detect the indentation (leading spaces/tabs) used by the existing doc block’s first line. */
+/** Detect the indentation (leading spaces/tabs) used by the existing doc block's first line. */
 function detectDocIndent(fullText: string, rangeStart: number): string {
   const lineStart = fullText.lastIndexOf('\n', rangeStart - 1) + 1;
   const leading = fullText.slice(lineStart, rangeStart);
@@ -84,7 +84,7 @@ export function extractLeadingJsdoc(
 export function parseJsdoc(raw: string | undefined): Jsdoc {
   if (!raw) return { description: [], tags: [] };
 
-  // Normalize // lines to a pseudo-block: we’ll rewrite anyway.
+  // Normalize // lines to a pseudo-block: we'll rewrite anyway.
   if (!raw.startsWith('/**')) {
     const lines = raw.split(/\r?\n/).map(l => l.replace(/^\s*\/\/\s?/, '').trimRight());
     return { description: trimBlank(lines), tags: [] };
@@ -174,7 +174,7 @@ export function upsertDefaultForProp(
   });
 
   if (found.range) {
-    // If the original docblock is followed by a newline already, don’t add another.
+    // If the original docblock is followed by a newline already, don't add another.
     const afterChar = fullText[found.range[1]] ?? '';
     const sep = afterChar === '\n' ? '' : '\n';
     return fullText.slice(0, found.range[0]) + next + sep + fullText.slice(found.range[1]);
