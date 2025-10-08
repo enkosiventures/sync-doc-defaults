@@ -6,6 +6,7 @@ import { pathToFileURL } from 'node:url';
 import {
   injectDefaultsIntoDts,
   assertDefaultsInDts,
+  listInterfaceProps,
 } from './dts-ops/index.js';
 
 import { loadModuleSmart } from './source-loader.js';
@@ -82,6 +83,14 @@ export async function inject(configPath?: string, opts: RunOptions = {}) {
       dtsText = await fs.readFile(dtsPathAbs, 'utf8');
     } catch {
       throw new Error(`[sync-doc-defaults] ${name}: .d.ts not found at ${rel(repoRoot, dtsPathAbs)}`);
+    }
+
+    // Ensure the requested interface exists; tests expect rejection when missing
+    const props = listInterfaceProps(dtsText, t.interface);
+    if (!props || props.length === 0) {
+      throw new Error(
+        `[sync-doc-defaults] ${name}: Interface "${t.interface}" not found in ${rel(repoRoot, dtsPathAbs)}`
+      );
     }
 
     // inject

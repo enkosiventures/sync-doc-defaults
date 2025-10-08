@@ -6,7 +6,7 @@ import { inferBuiltJsForTs } from './tsconfig-resolver.js';
 import { Logger } from './log.js';
 
 
-function resolveTsxFrom(repoRoot: string): string | undefined {
+export function resolveTsxFrom(repoRoot: string): string | undefined {
   try {
     // resolve from consumer project first
     const requireFromUser = createRequire(path.join(repoRoot, 'package.json'));

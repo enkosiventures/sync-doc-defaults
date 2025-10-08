@@ -3,28 +3,7 @@ import fs from 'node:fs/promises';
 import path from 'node:path';
 import os from 'node:os';
 
-import { loadModuleSmart, getByPath, assertPlainObject } from '../src/source-loader.js';
-
-import { createRequire } from 'node:module';
-const req = createRequire(import.meta.url);
-function tsxAvailable(cwd?: string): boolean {
-  if (cwd) {
-    try {
-      const reqFromUser = createRequire(path.join(cwd, 'package.json'));
-      reqFromUser.resolve('tsx/esm');
-      return true;
-    } catch {
-      return false;
-    }
-  }
-  // global check
-  try {
-    req.resolve('tsx/esm');
-    return true;
-  } catch {
-    return false;
-  }
-}
+import { loadModuleSmart, getByPath, assertPlainObject, resolveTsxFrom } from '../src/source-loader.js';
 
 let TMP = '';
 async function mkTmp() {
@@ -109,7 +88,7 @@ describe('source-loader', () => {
       tsDeclarationDir: undefined,
     });
 
-    if (tsxAvailable()) {
+    if (resolveTsxFrom(TMP)) {
       const mod = await call();
       expect(mod && mod.DEFAULTS && mod.DEFAULTS.n).toBe(2);
     } else {
@@ -139,7 +118,7 @@ describe('source-loader', () => {
       // Intentionally DO include the file, but Node ESM will reject because the import has no .js suffix:
       await fs.writeFile(path.join(TMP, 'dist', 'src', 'util', 'logger.js'), 'export {};', 'utf8');
 
-      const canTsx = tsxAvailable(TMP);
+      const canTsx = resolveTsxFrom(TMP);
       if (!canTsx) {
         // No tsx installed in this test env -> we just assert we get a helpful message.
         await expect(
