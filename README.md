@@ -169,7 +169,7 @@ export default {
   * `--ts on`: require `tsx`; load TS directly.
   * `--ts off`: require compiled JS/JSON only.
   * Environment override: `SYNCDOCDEFAULTS_TS=on|off|auto`.
-* **Built types (`dts`)**: inferred via your `tsconfig`’s `rootDir` and `declarationDir` if not provided.
+* **Built types (`dts`)**: inferred via your `tsconfig`'s `rootDir` and `declarationDir` if not provided.
 
 ---
 
@@ -189,6 +189,73 @@ In `package.json`:
 ```
 
 If declarations are emitted by a separate `tsc` step, ensure `.d.ts` files exist before running the tool.
+
+---
+
+## Complex default values
+
+SyncDocDefaults handles simple literals (`string`, `number`, `boolean`, `null`) automatically.  
+For more complex values like arrays or objects, the tool serializes them as JSON in the `@default` tag.
+
+### Arrays and objects
+
+Short values are written inline:
+
+```ts
+/** @default ["a","b","c"] */
+items?: string[];
+```
+
+Longer or nested values are written as pretty-printed JSON on separate lines:
+
+```ts
+/**
+ * @default
+ * {
+ *   "retry": 3,
+ *   "backoffMs": 200
+ * }
+ */
+options?: { retry?: number; backoffMs?: number };
+```
+
+> Tip: Multiline `@default` blocks are supported and safe across CRLF/LF line endings.
+
+### Computed or non-serializable values
+
+Functions, classes, `Date`, `RegExp`, and other computed defaults are **not injected directly**, since they can't be represented as static JSON.
+Instead, document them using a descriptive string:
+
+```ts
+/**
+ * @default computed at runtime
+ * @remarks Derived from NODE_ENV and feature flags.
+ */
+transform?: (input: string) => string;
+```
+
+or reference the symbolic name:
+
+```ts
+/**
+ * @default "DefaultTransform"
+ * @remarks See src/transform/default.ts
+ */
+transform?: (input: string) => string;
+```
+
+### Advanced customization
+
+If you need more control, future versions will support a custom serializer hook in config, e.g.:
+
+```js
+serializeDefault(prop, value) {
+  if (typeof value === 'function') return '"<computed>"';
+  return JSON.stringify(value);
+}
+```
+
+This will let you override how specific property values are rendered without breaking assertions.
 
 ---
 
@@ -212,7 +279,7 @@ If declarations are emitted by a separate `tsc` step, ensure `.d.ts` files exist
 Both are supported. `@default` is recommended for literal values (`defaultTag: 'defaultValue'` to use the alternative).
 
 **Do I need `tsup` or `tsx` installed?**
-No. They’re used only for *this* package’s own build.
+No. They're used only for *this* package's own build.
 If your defaults are TS and no compiled JS exists, `--ts auto` will use `tsx` if available; otherwise set `--ts off` and reference built JS/JSON instead.
 
 ---
