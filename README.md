@@ -1,35 +1,36 @@
-# DocDefaults
+# SyncDocDefaults
 
-**DocDefaults** is a lightweight utility that keeps your generated TypeScript declaration files (`.d.ts`) in sync with your runtime defaults.
+**SyncDocDefaults** keeps your generated TypeScript declaration files (`.d.ts`) in sync with your runtime defaults.
 
-It automatically **injects** literal values into JSDoc `@defaultValue` tags in `.d.ts` files, and can **assert** that the declarations remain aligned during CI.
+It automatically **injects** literal values into JSDoc `@default` tags in `.d.ts` files, and can **assert** that the declarations remain aligned during CI.
 
 ---
 
 ## Why?
 
-When writing library types, you often want consumers to see real default values inline:
+When writing library types, you often want consumers to see *real* default values inline:
 
 ```ts
 export interface ExampleOptions {
   /**
    * Foo string.
-   * @defaultValue "bar"
+   *
+   * @default "bar"
    */
   foo?: string;
 }
-````
+```
 
 …but those defaults actually live in runtime code:
 
 ```ts
-// constants.ts
+// defaults.ts (or constants.ts — your choice)
 export const DEFAULTS = {
   foo: "bar",
 };
 ```
 
-Without automation, the two can drift. **DocDefaults** eliminates this duplication:
+Without automation, the two can drift. **SyncDocDefaults** eliminates this duplication:
 
 * Source of truth = your runtime defaults object.
 * `.d.ts` JSDoc is patched at build/publish time.
@@ -40,56 +41,109 @@ Without automation, the two can drift. **DocDefaults** eliminates this duplicati
 ## Install
 
 ```bash
-npm install --save-dev docdefaults
+pnpm add -D sync-doc-defaults
 # or
-pnpm add -D docdefaults
+npm i -D sync-doc-defaults
 ```
 
 ---
 
-## Usage
+## CLI
 
-DocDefaults has two commands:
+SyncDocDefaults has two commands:
 
 ```bash
-docdefaults inject    # patch @defaultValue tags in .d.ts
-docdefaults assert    # verify they are correct
+sync-doc-defaults inject    # patch @default tags in .d.ts
+sync-doc-defaults assert    # verify they are correct
 ```
 
-### Example
+A short alias is also provided:
+
+```bash
+sdd inject
+sdd assert
+```
+
+### Usage
 
 ```bash
 pnpm build
-pnpm docdefaults inject
-git diff # see updated defaults in dist/types/*.d.ts
+sdd inject
+git diff   # see updated defaults in dist/*.d.ts
 ```
 
 In CI:
 
 ```bash
 pnpm build
-pnpm docdefaults assert
+sdd assert
 ```
+
+### Help
+
+```
+Usage:
+  sync-doc-defaults <inject|assert> [options]
+
+Options:
+  -c, --config <file>   Explicit config file (otherwise searched)
+  --dry                 (inject) Show changes but do not write files
+  --quiet               Minimal output
+  --debug-paths         Verbose resolution info
+  --ts <auto|on|off>    TypeScript loading mode (default: auto)
+
+Examples:
+  sync-doc-defaults inject
+  sync-doc-defaults assert --quiet
+  sync-doc-defaults inject --dry --debug-paths
+```
+
+Exit codes:
+
+* `0` success
+* `1` assertion/validation failure
+* `2` config file not found
 
 ---
 
 ## Configuration
 
-Place a `docdefaults.config.mjs` in your project root:
+Place a config at your project root. By default we search upward from `cwd` for either:
+
+* `docdefaults.config.(mjs|cjs|js|json)` ← nice, short, and reads well, or
+* `sync-doc-defaults.config.(mjs|cjs|js|json)` ← explicit package name
+
+**Recommended (ESM):**
 
 ```js
+/** @type {import('sync-doc-defaults').DocDefaultsConfig} */
 export default {
-  // Path to the compiled module (JS/JSON) that exports your defaults
-  constants: "dist/constants.js",
+  // Path (relative to repo root) to the module that exports your defaults.
+  // Can be TS or JS/JSON; when TS is used, we load it via compiled JS if present
+  // or via tsx when allowed by --ts=auto|on.
+  defaults: 'src/constants.ts',
 
-  // One or more target interfaces
+  // Optional: path to the tsconfig we should inspect to infer built .d.ts locations
+  tsconfig: 'tsconfig.json',
+
+  // Which tag the tool should render into JSDoc: 'default' (recommended) or 'defaultValue'
+  defaultTag: 'default',
+
+  // One or more targets to sync
   targets: [
     {
-      name: "Example options",         // just an optional label for logs
-      source: "src/options.ts",        // source file declaring the interface
-      // dts optional — inferred from tsconfig if omitted
-      interface: "ExampleOptions",         // interface name
-      defaults: "DEFAULTS",       // exported symbol with defaults
+      // Path to the source type that declares the interface
+      types: 'src/types.ts',
+
+      // Name of the interface in that file / in the emitted .d.ts
+      interface: 'ExampleOptions',
+
+      // Optional explicit path to the built .d.ts (if omitted, inferred from tsconfig)
+      builtTypes: 'dist/types.d.ts',
+
+      // The exported member (symbol or dotted path) inside your defaults module
+      // e.g. "DEFAULTS" or "DEFAULTS.subsection"
+      member: 'DEFAULTS',
     },
   ],
 };
@@ -97,100 +151,60 @@ export default {
 
 ### Resolution rules
 
-* **Config discovery**: if `--config` is not provided, DocDefaults searches upward from `cwd` for `docdefaults.config.(mjs|cjs|js|json)`.
-* **Defaults source**: only `source` imports are supported — no inline constants in config. This ensures a single source of truth.
-* **d.ts inference**: if `dtsPath` is omitted, DocDefaults inspects your nearest `tsconfig.json` (`rootDir` + `outDir` / `declarationDir`) to locate the emitted `.d.ts`.
+* **Config discovery:** searches for `docdefaults.config.*` or `sync-doc-defaults.config.*` from `cwd` upward unless `--config` is given.
+* **Defaults module (`defaults`):** may be TS/JS/JSON.
+
+  * `--ts auto` (default): if compiled JS exists, use it; otherwise try `tsx` to load TS.
+  * `--ts on`: require `tsx`; load TS directly.
+  * `--ts off`: require compiled JS/JSON; do not attempt TS.
+  * Env override supported: `SYNCDOCDEFAULTS_TS=on|off|auto` (legacy `DOCDEFAULTS_TS` also accepted).
+* **Built types (`builtTypes`):** if omitted, inferred from your `tsconfig` (`rootDir` + `outDir` or `declarationDir`). Provide it explicitly if your layout is unusual.
 
 ---
 
-## CLI Options
-
-```bash
-docdefaults inject [--config <file>] [--dry] [--quiet] [--debug-paths]
-docdefaults assert [--config <file>] [--quiet] [--debug-paths]
-```
-
-* `--config <file>`: explicit config file path. If omitted, search upwards.
-* `--dry`: with `inject`, preview changes but do not write files.
-* `--quiet`: minimal logging.
-* `--debug-paths`: verbose logging of path resolution.
-* `--ts on|off|auto`: Control TypeScript loading (default: auto)
-  * `auto` - Use compiled JS if found; otherwise use TS via tsx if available
-  * `on` -   Force TS via tsx; error if tsx is not installed
-  * `off` -  Do not use tsx; require compiled JS to exist
-
-
-Exit codes:
-
-* `0` success
-* `1` assertion or validation failure
-* `2` config file not found
-
----
-
-## Example Workflow
+## Example workflow
 
 In `package.json`:
 
 ```json
 {
   "scripts": {
-    "build:types": "tsc -p tsconfig.types.json",
-    "types:inject": "pnpm build:types && docdefaults inject",
-    "types:assert": "pnpm build:types && docdefaults assert"
+    "build": "tsup",
+    "test": "vitest",
+    "types:inject": "pnpm build && sync-doc-defaults inject",
+    "types:assert": "pnpm build && sync-doc-defaults assert"
   }
 }
 ```
+
+If you emit declarations with a separate `tsc` step, just ensure `builtTypes` (or a tsconfig that leads there) is available before running the tool.
 
 ---
 
 ## Development
 
-* Code is modular and testable (`src/config.ts`, `src/source-loader.ts`, `src/dts-ops.ts`, etc.).
-* Tests use [Vitest](https://vitest.dev/).
-* Run tests with:
+* Modular code (`src/config.ts`, `src/source-loader.ts`, `src/dts-ops/*`, etc.).
+* Tests use [Vitest](https://vitest.dev/). Run with:
 
-```bash
-pnpm vitest
-```
-
----
-
-### Loading TypeScript constants (zero-config by default)
-
-DocDefaults will import your `src/constants.ts` without a build if you have `tsx` installed:
-
-```bash
-pnpm add -D tsx
-```
-
-Then `docdefaults inject` “just works” on `.ts`.
-If there’s a compiled JS next to it (inferred from your tsconfig), we use that instead (fast & deterministic).
-
-You can force behavior:
-
-* `SYNCDOCDEFAULTS_TS=on` or `--ts on` → always import `.ts` via tsx; error if tsx isn’t installed.
-
-* `SYNCDOCDEFAULTS_TS=off` or `--ts off` → never import `.ts`; require a build.
-
-We recommend keeping `tsx` as a devDependency for the best DX in development, and letting CI rely on built JS for speed.
+  ```bash
+  pnpm vitest
+  ```
+* Dry runs (`--dry`) show the exact interface block(s) that would be changed.
 
 ---
 
 ## FAQ
 
-**Can I use inline defaults in config?**
-No. Inline constants are not supported — DocDefaults enforces a single source of truth by reading directly from your runtime defaults module.
+**Why `@default` and not `@defaultValue`?**
+We support either, but we recommend `@default` for static values. (Pass `defaultTag: 'defaultValue'` if you prefer.)
 
-**Do I need to run it before or after build?**
-Run after build, so that `defaultsModulePath` points to compiled JS/JSON.
+**Do I need `tsup`/`tsx` to use the CLI?**
+No. They’re internal dev deps for *this* package. As a consumer you just install `sync-doc-defaults`. If you point `defaults` at TS and don’t have compiled JS, `--ts auto` will use `tsx` if you have it; otherwise set `--ts off` and provide compiled JS/JSON.
 
 ---
 
 ## License
 
 MIT. Contributions welcome!
-
-```
 
 ---
