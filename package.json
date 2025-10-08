@@ -67,7 +67,7 @@
     "clean": "rimraf dist coverage",
     "prepublishOnly": "pnpm run build && pnpm run test",
     "ci:version": "changeset version && pnpm install --no-frozen-lockfile && pnpm build",
-    "release": "changeset publish"
+    "release": "changeset publish --no-git-tag && npm publish --provenance"
   },
   "peerDependencies": {
     "tsx": "^4.0.0"

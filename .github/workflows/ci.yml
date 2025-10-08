@@ -39,6 +39,9 @@ jobs:
       - name: Install deps
         run: pnpm install --frozen-lockfile
 
+      - name: Build
+        run: pnpm run build
+
       - name: Type check
         run: pnpm run typecheck
 
@@ -47,9 +50,6 @@ jobs:
 
       - name: Test
         run: pnpm run test
-
-      - name: Build
-        run: pnpm run build
 
       # Quick sanity check the built CLI exists and prints help
       - name: Smoke test CLI
