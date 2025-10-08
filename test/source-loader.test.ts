@@ -44,7 +44,7 @@ describe('source-loader', () => {
   afterEach(async () => {
     try { await fs.rm(TMP, { recursive: true, force: true }); } catch {}
     TMP = '';
-    delete (process.env as any).DOCDEFAULTS_TS;
+    delete (process.env as any).SYNCDOCDEFAULTS_TS;
   });
 
   it('loads a JS module (named export) and resolves default path access', async () => {
@@ -84,7 +84,7 @@ describe('source-loader', () => {
     expect(getByPath(mod, 'DEFAULTS.foo')).toBe('from-built-js'); // proves it imported compiled JS
   });
 
-  it('for a TS file without build, throws helpful guidance unless DOCDEFAULTS_TS=1', async () => {
+  it('for a TS file without build, throws helpful guidance unless SYNCDOCDEFAULTS_TS=on', async () => {
     const srcTs = path.join(TMP, 'src/constants.ts');
     await write(srcTs, `export const DEFAULTS = { n: 1 }`);
 
@@ -94,13 +94,13 @@ describe('source-loader', () => {
       tsOutDir: path.join(TMP, 'dist'),
       tsDeclarationDir: undefined,
       tsMode: 'off',
-    })).rejects.toThrow(/Either build your project|DOCDEFAULTS_TS=1/);
+    })).rejects.toThrow(/Either build your project|SYNCDOCDEFAULTS_TS=on/);
   });
 
-  it('with DOCDEFAULTS_TS=1: if tsx missing -> helpful error; if present -> loads TS directly', async () => {
+  it('with SYNCDOCDEFAULTS_TS=on: if tsx missing -> helpful error; if present -> loads TS directly', async () => {
     const srcTs = path.join(TMP, 'src/constants.ts');
     await write(srcTs, `export const DEFAULTS = { n: 2 }`);
-    (process.env as any).DOCDEFAULTS_TS = '1';
+    (process.env as any).SYNCDOCDEFAULTS_TS = 'on';
 
     const call = () => loadModuleSmart(srcTs, {
       repoRoot: TMP,

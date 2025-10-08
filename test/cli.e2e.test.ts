@@ -58,10 +58,10 @@ describe('docdefaults CLI (e2e)', () => {
       defaultsModulePath: 'constants.js',
       targets: [{
         name: 'Example',
-        srcPath: 'src/options.ts',
-        dtsPath: 'types.d.ts',
-        interfaceName: 'ExampleOptions',
-        defaultsRef: 'DEFAULTS',
+        source: 'src/options.ts',
+        dts: 'types.d.ts',
+        interface: 'ExampleOptions',
+        defaults: 'DEFAULTS',
       }],
     };
     const cfgPath = path.join(cwd, 'docdefaults.config.json');
@@ -78,10 +78,10 @@ describe('docdefaults CLI (e2e)', () => {
       defaultsModulePath: 'constants.js',
       targets: [{
         name: 'Example',
-        srcPath: 'src/options.ts',
-        dtsPath: 'types.d.ts',
-        interfaceName: 'ExampleOptions',
-        defaultsRef: 'DEFAULTS',
+        source: 'src/options.ts',
+        dts: 'types.d.ts',
+        interface: 'ExampleOptions',
+        defaults: 'DEFAULTS',
       }]
     }`);
 
@@ -107,10 +107,10 @@ describe('docdefaults CLI (e2e)', () => {
       defaultsModulePath: 'constants.js',
       targets: [{
         name: 'Example',
-        srcPath: 'src/options.ts',
-        dtsPath: 'types.d.ts',
-        interfaceName: 'ExampleOptions',
-        defaultsRef: 'DEFAULTS',
+        source: 'src/options.ts',
+        dts: 'types.d.ts',
+        interface: 'ExampleOptions',
+        defaults: 'DEFAULTS',
       }],
     }));
 
@@ -129,10 +129,10 @@ describe('docdefaults CLI (e2e)', () => {
       defaultsModulePath: 'constants.js',
       targets: [{
         name: 'Example',
-        srcPath: 'src/options.ts',
-        dtsPath: 'types.d.ts',
-        interfaceName: 'ExampleOptions',
-        defaultsRef: 'DEFAULTS',
+        source: 'src/options.ts',
+        dts: 'types.d.ts',
+        interface: 'ExampleOptions',
+        defaults: 'DEFAULTS',
       }],
     }));
     const { code, stdout } = await runCli(['inject', '--config', cfgPath, '--quiet'], { cwd });
@@ -147,10 +147,10 @@ describe('docdefaults CLI (e2e)', () => {
       defaultsModulePath: 'constants.js',
       targets: [{
         name: 'Example',
-        srcPath: 'src/options.ts',
-        dtsPath: 'types.d.ts',
-        interfaceName: 'ExampleOptions',
-        defaultsRef: 'DEFAULTS',
+        source: 'src/options.ts',
+        dts: 'types.d.ts',
+        interface: 'ExampleOptions',
+        defaults: 'DEFAULTS',
       }],
     }));
     const { code, stdout } = await runCli(['inject', '--config', cfgPath, '--debug-paths'], { cwd });
@@ -166,10 +166,10 @@ describe('docdefaults CLI (e2e)', () => {
       defaultsModulePath: 'constants.js',
       targets: [{
         name: 'Example',
-        srcPath: 'src/options.ts',
-        dtsPath: 'types.d.ts',
-        interfaceName: 'ExampleOptions',
-        defaultsRef: 'DEFAULTS',
+        source: 'src/options.ts',
+        dts: 'types.d.ts',
+        interface: 'ExampleOptions',
+        defaults: 'DEFAULTS',
       }]
     }`);
     const { code } = await runCli(['inject'], { cwd });
@@ -182,10 +182,10 @@ describe('docdefaults CLI (e2e)', () => {
       defaultsModulePath: 'constants.js',
       targets: [{
         name: 'Example',
-        srcPath: 'src/options.ts',
-        dtsPath: 'types.d.ts',
-        interfaceName: 'ExampleOptions',
-        defaultsRef: 'DEFAULTS',
+        source: 'src/options.ts',
+        dts: 'types.d.ts',
+        interface: 'ExampleOptions',
+        defaults: 'DEFAULTS',
       }]
     }`);
     await runCli(['inject', '--config', cfgPath], { cwd });

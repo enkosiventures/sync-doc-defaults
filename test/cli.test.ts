@@ -53,10 +53,10 @@ describe('CLI --ts flag', () => {
         defaultsModulePath: 'src/constants.ts',
         targets: [{
           name: 'X',
-          srcPath: 'src/types.ts',
-          dtsPath: 'dist/types/types.d.ts',
-          interfaceName: 'Example',
-          defaultsRef: 'DEFAULTS'
+          source: 'src/types.ts',
+          dts: 'dist/types/types.d.ts',
+          interface: 'Example',
+          defaults: 'DEFAULTS'
         }]
       };
     `);

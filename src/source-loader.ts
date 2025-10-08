@@ -3,6 +3,8 @@ import path from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { createRequire } from 'node:module';
 import { inferBuiltJsForTs } from './tsconfig-resolver.js';
+import { Logger } from './log.js';
+
 
 function resolveTsxFrom(repoRoot: string): string | undefined {
   try {
@@ -27,32 +29,31 @@ export async function loadModuleSmart(
     tsDeclarationDir?: string;
     tsMode?: 'auto' | 'on' | 'off';
     quiet?: boolean;
+    debug?: boolean;
   }
 ): Promise<any> {
-  console.warn(`loadModuleSmart: defaultsModulePathAbs=${defaultsModulePathAbs}`);
+  const logger = new Logger(opts.quiet, opts.debug);
   const ext = path.extname(defaultsModulePathAbs).toLowerCase();
 
-  // JSON
   if (ext === '.json') {
-    console.warn(`loadModuleSmart: JSON detected`);
+    logger.log(`Loading JSON module ${rel(opts.repoRoot, defaultsModulePathAbs)}`);
     return JSON.parse(await fs.promises.readFile(defaultsModulePathAbs, 'utf8'));
   }
 
-  // JS-like
   if (ext === '.js' || ext === '.mjs' || ext === '.cjs') {
-    console.warn(`loadModuleSmart: JS-like detected`);
+    logger.log(`Loading JS module ${rel(opts.repoRoot, defaultsModulePathAbs)}`);
     const mod = await import(pathToFileURL(defaultsModulePathAbs).href);
     return mod?.default ?? mod;
   }
 
-  // TS/TSX
   if (ext === '.ts' || ext === '.tsx') {
+    logger.log(`Loading TS/TSX module ${rel(opts.repoRoot, defaultsModulePathAbs)}`);
     // Decide TS mode up-front so the built-JS path can fallback to TS when it fails.
     const mode =
       opts.tsMode ??
-      (process.env.DOCDEFAULTS_TS === '0'
+      (process.env.SYNCDOCDEFAULTS_TS === 'off'
         ? 'off'
-        : process.env.DOCDEFAULTS_TS === '1'
+        : process.env.SYNCDOCDEFAULTS_TS === 'on'
         ? 'on'
         : 'auto');
 
@@ -70,9 +71,16 @@ export async function loadModuleSmart(
         const mod = await import(pathToFileURL(built).href);
         return mod?.default ?? mod;
       } catch (err: any) {
+        logger.warn(
+          `Failed to import built JS ${rel(
+            opts.repoRoot,
+            built
+          )} (will try fallback options).\n→ ${String(err?.message || err)}`
+        );
         // 1a) Optional CJS fallback if a .cjs twin exists
         const cjs = built.replace(/\.js$/i, '.cjs');
         if (fs.existsSync(cjs)) {
+          logger.log(`Attempting to load .cjs fallback ${rel(opts.repoRoot, cjs)}`);
           const req = createRequire(path.join(opts.repoRoot, 'package.json'));
           const m = req(cjs);
           return (m && m.__esModule) ? (m.default ?? m) : m;
@@ -83,8 +91,8 @@ export async function loadModuleSmart(
           const tsx = resolveTsxFrom(opts.repoRoot);
           if (tsx) {
             if (!opts.quiet) {
-              console.warn(
-                `[docdefaults] Built JS failed to import (${rel(
+              logger.warn(
+                `Built JS failed to import (${rel(
                   opts.repoRoot,
                   built
                 )}); falling back to TS via tsx.\n→ ${String(err?.message || err)}`
@@ -96,7 +104,7 @@ export async function loadModuleSmart(
           }
           if (mode === 'on') {
             throw new Error(
-              'DOCDEFAULTS_TS=1 / --ts on set but "tsx" is not installed in the target project. Install with: pnpm add -D tsx'
+              'SYNCDOCDEFAULTS_TS=on / --ts on set but "tsx" is not installed in the target project. Install with: pnpm add -D tsx'
             );
           }
           // mode=auto and no tsx → fall through to guidance below
@@ -104,11 +112,11 @@ export async function loadModuleSmart(
           // mode=off → respect user choice; rethrow with context
           const msg = String(err?.message || err);
           throw new Error(
-            `[docdefaults] Failed to import built JS ${rel(
+            `[sync-doc-defaults] Failed to import built JS ${rel(
               opts.repoRoot,
               built
             )} (ts mode=off).\n` +
-              `Fix your ESM imports (add ".js" to relative paths), or run with "--ts on" / DOCDEFAULTS_TS=1.\n` +
+              `Fix your ESM imports (add ".js" to relative paths), or run with "--ts on" / SYNCDOCDEFAULTS_TS=on.\n` +
               `Original error: ${msg}`
           );
         }
@@ -125,7 +133,7 @@ export async function loadModuleSmart(
       }
       if (mode === 'on') {
         throw new Error(
-          'DOCDEFAULTS_TS=1 / --ts on set but "tsx" is not installed in the target project. Install with: pnpm add -D tsx'
+          'SYNCDOCDEFAULTS_TS=on / --ts on set but "tsx" is not installed in the target project. Install with: pnpm add -D tsx'
         );
       }
     }

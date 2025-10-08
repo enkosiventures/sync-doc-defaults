@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach } from 'vitest';
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import os from 'node:os';
-import { inject, assert } from '../src/index.js';
+import { inject, assert } from '../src/api.js';
 import type { DocDefaultsConfig } from '../src/types.js';
 
 const FIX_DIR = path.resolve(__dirname, 'fixtures');
@@ -22,14 +22,14 @@ describe('docdefaults', () => {
   beforeEach(async () => {
     ({ tmp, constants, dts } = await makeTempCopy());
     config = {
-      defaultsModulePath: path.relative(tmp, constants),
+      defaults: path.relative(tmp, constants),
       targets: [
         {
           name: 'Example',
-          srcPath: 'src/options.ts', // dummy (not used in inference here)
-          dtsPath: path.relative(tmp, dts),
-          interfaceName: 'ExampleOptions',
-          defaultsRef: 'DEFAULTS',
+          types: 'src/options.ts', // dummy (not used in inference here)
+          dts: path.relative(tmp, dts),
+          interface: 'ExampleOptions',
+          member: 'DEFAULTS',
         },
       ],
     };

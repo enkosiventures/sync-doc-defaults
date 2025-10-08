@@ -73,7 +73,7 @@ export function injectDefaultsIntoDts(params: {
     text = upsertDefaultForProp(text, t.headStart, t.indent, t.expected, preferredTag);
     updated++;
 
-    // If you prefer maximal safety at the cost of perf, you can
+    // For maximal safety at the cost of performance,
     // recompute the latest headStart here instead of sorting:
     // const latest = listInterfaceProps(text, interfaceName).find(p => p.name === t.prop);
     // if (!latest) continue; // disappeared? skip

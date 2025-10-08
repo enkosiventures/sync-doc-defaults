@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach } from 'vitest';
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import os from 'node:os';
-import { inject, assert } from '../src/index.js';
+import { inject, assert } from '../src/api.js';
 import type { DocDefaultsConfig } from '../src/types.js';
 
 async function tmpdir() {
@@ -27,8 +27,8 @@ describe('index (errors & branches)', () => {
     await write(dts, `export interface Other { foo?: string; }`);
 
     const cfg: DocDefaultsConfig = {
-      defaultsModulePath: 'constants.js',
-      targets: [{ name: 'X', srcPath: 'src/x.ts', dtsPath: 'types.d.ts', interfaceName: 'Missing', defaultsRef: 'DEFAULTS' }],
+      defaults: 'constants.js',
+      targets: [{ name: 'X', types: 'src/x.ts', dts: 'types.d.ts', interface: 'Missing', member: 'DEFAULTS' }],
     };
 
     const cfgFile = path.join(cwd, 'docdefaults.config.json');
@@ -44,8 +44,8 @@ describe('index (errors & branches)', () => {
     await write(dts, `export interface Example { foo?: string; }`);
 
     const cfg: DocDefaultsConfig = {
-      defaultsModulePath: 'constants.js',
-      targets: [{ name: 'X', srcPath: 'src/x.ts', dtsPath: 'types.d.ts', interfaceName: 'Example', defaultsRef: 'DEFAULTS' }],
+      defaults: 'constants.js',
+      targets: [{ name: 'X', types: 'src/x.ts', dts: 'types.d.ts', interface: 'Example', member: 'DEFAULTS' }],
     };
 
     const cfgFile = path.join(cwd, 'docdefaults.config.json');
@@ -61,8 +61,8 @@ describe('index (errors & branches)', () => {
     await write(dts, `export interface Example { foo?: string; }`);
 
     const cfg: DocDefaultsConfig = {
-      defaultsModulePath: 'constants.js',
-      targets: [{ name: 'X', srcPath: 'src/x.ts', dtsPath: 'types.d.ts', interfaceName: 'Example', defaultsRef: 'DEFAULTS' }],
+      defaults: 'constants.js',
+      targets: [{ name: 'X', types: 'src/x.ts', dts: 'types.d.ts', interface: 'Example', member: 'DEFAULTS' }],
     };
 
     const cfgFile = path.join(cwd, 'docdefaults.config.json');
@@ -80,8 +80,8 @@ describe('index (errors & branches)', () => {
     await write(dts, `export interface Example { a?: number; }`);
 
     const cfg: DocDefaultsConfig = {
-      defaultsModulePath: 'constants.js',
-      targets: [{ name: 'X', srcPath: 'src/x.ts', dtsPath: 'types.d.ts', interfaceName: 'Example', defaultsRef: 'DEFAULTS' }],
+      defaults: 'constants.js',
+      targets: [{ name: 'X', types: 'src/x.ts', dts: 'types.d.ts', interface: 'Example', member: 'DEFAULTS' }],
     };
 
     const cfgFile = path.join(cwd, 'docdefaults.config.json');
@@ -100,8 +100,8 @@ describe('index (errors & branches)', () => {
     await write(dts, `export interface Example { a?: number; }`);
 
     const cfg: DocDefaultsConfig = {
-      defaultsModulePath: 'constants.js',
-      targets: [{ name: 'X', srcPath: 'src/x.ts', dtsPath: 'types.d.ts', interfaceName: 'Example', defaultsRef: 'DEFAULTS' }],
+      defaults: 'constants.js',
+      targets: [{ name: 'X', types: 'src/x.ts', dts: 'types.d.ts', interface: 'Example', member: 'DEFAULTS' }],
     };
     const cfgFile = path.join(cwd, 'docdefaults.config.json');
     await write(cfgFile, JSON.stringify(cfg));

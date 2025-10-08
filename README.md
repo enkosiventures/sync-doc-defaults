@@ -80,16 +80,16 @@ Place a `docdefaults.config.mjs` in your project root:
 ```js
 export default {
   // Path to the compiled module (JS/JSON) that exports your defaults
-  defaultsModulePath: "dist/constants.js",
+  constants: "dist/constants.js",
 
   // One or more target interfaces
   targets: [
     {
       name: "Example options",         // just an optional label for logs
-      srcPath: "src/options.ts",        // source file declaring the interface
-      // dtsPath optional — inferred from tsconfig if omitted
-      interfaceName: "ExampleOptions",         // interface name
-      defaultsRef: "DEFAULTS",       // exported symbol with defaults
+      source: "src/options.ts",        // source file declaring the interface
+      // dts optional — inferred from tsconfig if omitted
+      interface: "ExampleOptions",         // interface name
+      defaults: "DEFAULTS",       // exported symbol with defaults
     },
   ],
 };
@@ -169,9 +169,9 @@ If there’s a compiled JS next to it (inferred from your tsconfig), we use that
 
 You can force behavior:
 
-* `DOCDEFAULTS_TS=1` or `--ts on` → always import `.ts` via tsx; error if tsx isn’t installed.
+* `SYNCDOCDEFAULTS_TS=on` or `--ts on` → always import `.ts` via tsx; error if tsx isn’t installed.
 
-* `DOCDEFAULTS_TS=0` or `--ts off` → never import `.ts`; require a build.
+* `SYNCDOCDEFAULTS_TS=off` or `--ts off` → never import `.ts`; require a build.
 
 We recommend keeping `tsx` as a devDependency for the best DX in development, and letting CI rely on built JS for speed.
 

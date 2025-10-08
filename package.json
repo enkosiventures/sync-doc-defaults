@@ -24,11 +24,10 @@
   "sideEffects": false,
   "type": "module",
   "packageManager": "pnpm@10.17.0",
-  "main": "dist/index.js",
-  "module": "dist/index.js",
   "types": "dist/index.d.ts",
   "bin": {
-    "sync-doc-defaults": "./dist/cli.js"
+    "sync-doc-defaults": "./dist/cli.js",
+    "sdd": "./dist/cli.js"
   },
   "files": [
     "dist",
@@ -45,7 +44,12 @@
     ".": {
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js"
-    }
+    },
+    "./types": {
+      "types": "./dist/types.d.ts",
+      "default": "./dist/types.d.ts"
+    },
+    "./package.json": "./package.json"
   },
   "scripts": {
     "build": "tsup",

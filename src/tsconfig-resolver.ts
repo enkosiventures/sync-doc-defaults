@@ -57,11 +57,9 @@ export function inferBuiltJsForTs(args: {
   repoRoot: string;
   tsFileAbs: string;
 }): string | undefined {
-  console.warn(`inferBuiltJsForTs: args=${JSON.stringify(args, null, 2)}`);
   const { tsRootDir, tsOutDir, tsDeclarationDir, repoRoot, tsFileAbs } = args;
   const outBase = tsOutDir ?? tsDeclarationDir;
   const root = tsRootDir;
-  // const root = repoRoot;
   if (!outBase || !root) return undefined;
   const relFromRoot = path.relative(root, tsFileAbs);
   if (relFromRoot.startsWith('..')) return undefined;

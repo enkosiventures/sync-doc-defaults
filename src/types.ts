@@ -4,6 +4,10 @@
  * imported from both the library code and the CLI.
  */
 
+/* ----------------------------------------------------------------------------
+ * Public API types
+ * ------------------------------------------------------------------------- */
+
 /**
  * How TypeScript sources should be handled at runtime. 
  * - 'auto': Try using pre-compiled `.js`, fallback to importing TypeScript sources via `tsx` if available
@@ -19,26 +23,8 @@ export type TsMode = 'auto' | 'on' | 'off';
  */
 export type DefaultTag = 'default' | 'defaultValue';
 
-/**
- * Parsed JSDoc block for a property/interface member.
- */
-export type Jsdoc = {
-  /** Lines of human description above the tags (no leading `*`). */
-  description: string[];
-  /** Structured tags (`@tag …`) preserved in order of appearance. */
-  tags: Array<{ tag: string; text: string }>;
-};
-
-/**
- * Common knobs for commands (library & CLI) that operate in a repository.
- */
-export interface RunOptions {
-  /**
-   * Absolute path to the project root the user intends to operate in.
-   * If omitted, callers typically default this to `process.cwd()`.
-   */
-  repoRoot?: string;
-
+/** Fields shared by public & internal options. */
+export interface CommonOptions {
   /**
    * When true, write nothing to disk. Operations still compute diffs and
    * return results as if they had written, so callers can preview changes.
@@ -53,16 +39,39 @@ export interface RunOptions {
 
   /**
    * TypeScript handling mode. See {@link TsMode}.
-   * Defaults to `'auto'` unless overridden by CLI flags or env.
    */
   tsMode?: TsMode;
 
   /**
    * Which JSDoc tag to render for defaults. See {@link DefaultTag}.
-   * Defaults to `'default'`.
    */
-  defaultTag?: DefaultTag;
+  tag?: DefaultTag;
 }
+
+/** Public-facing options (CLI + library entry points). */
+export interface RunOptions extends CommonOptions {
+  /**
+   * Absolute path to the project root the user intends to operate in.
+   * If omitted, callers typically default this to `process.cwd()`.
+   */
+  repoRoot?: string;
+}
+
+/** Internal options with a guaranteed, absolute repo root. */
+export interface Options extends CommonOptions {
+  /** Absolute repo root (always resolved). */
+  repoRoot: string;
+}
+
+/**
+ * Parsed JSDoc block for a property/interface member.
+ */
+export type Jsdoc = {
+  /** Lines of human description above the tags (no leading `*`). */
+  description: string[];
+  /** Structured tags (`@tag …`) preserved in order of appearance. */
+  tags: Array<{ tag: string; text: string }>;
+};
 
 /**
  * A resolved snapshot of how the target project builds TypeScript.
@@ -97,74 +106,10 @@ export type LoadedTsProject = {
   tsMode?: TsMode;
 };
 
-/**
- * Lightweight, internal options used by lower-level helpers that don’t need
- * the full `RunOptions` surface (e.g., they’re called with a resolved root).
- */
-export type Options = {
-  /** Absolute repo root these operations should treat as the base. */
-  repoRoot: string;
-
-  /** Suppress routine logs; still print actionable errors. */
-  quiet?: boolean;
-
-  /** Verbose path-resolution breadcrumbs for debugging. */
-  debugPaths?: boolean;
-
-  /**
-   * When true, write nothing to disk. Helpers that can modify files should
-   * honor this and return the would-be content instead.
-   */
-  dryRun?: boolean;
-
-  /** Effective TypeScript handling mode (see {@link TsMode}). */
-  tsMode?: TsMode;
-};
 
 /* ----------------------------------------------------------------------------
  * High-level configuration and results
  * ------------------------------------------------------------------------- */
-
-/**
- * A single “target” to inject/assert defaults for.
- * Each target binds a TypeScript **source** (where the interface is declared),
- * a **.d.ts** surface (where we inject doc comments), and a **defaults symbol**
- * in your constants module.
- */
-export interface DocDefaultsTarget {
-  /**
-   * Short cosmetic label for logs (e.g., the feature or bundle name).
-   */
-  name?: string;
-
-  /**
-   * Repo-relative path to the TypeScript file that declares the interface
-   * (e.g., `packages/foo/src/types.ts`).
-   * Used to infer the emitted `.d.ts` location when `dtsPath` is omitted.
-   */
-  srcPath: string;
-
-  /**
-   * Optional repo-relative path to the concrete `.d.ts` to rewrite
-   * (e.g., `packages/foo/dist/types/types.d.ts`).
-   * If omitted, we attempt to infer it from `tsconfig` (`rootDir`/`declarationDir`).
-   */
-  dtsPath?: string;
-
-  /**
-   * The **interface name** inside the `.d.ts` that should receive `@default`
-   * doc comments.
-   */
-  interfaceName: string;
-
-  /**
-   * The symbol (or dotted path) inside your constants module to read defaults from.
-   * Examples:
-   *   - `"DEFAULTS"` (top-level object)
-   *   - `"DEFAULTS.consent"` (nested property)
-   */
-  defaultsRef: string;
-};
 
 /**
  * Top-level configuration for the tool. Usually stored in `docdefaults.config.*`.
@@ -175,19 +120,17 @@ export interface DocDefaultsConfig {
    * If omitted, the tool searches upward from `repoRoot` for a suitable tsconfig.
    * Used to discover `rootDir`, `outDir`, and `declarationDir`.
    */
-  tsconfigPath?: string;
+  tsconfig?: string;
 
   /**
-   * Repo-relative module path for the defaults (constants) source.
-   * This is imported (built JS first, then TS via `tsx` if needed) so we can
-   * read the object referenced by `defaultsRef` in each target.
+   * Repo-relative module path for the defaults source.
    */
-  defaultsModulePath: string;
+  defaults: string;
 
   /**
    * Preferred JSDoc tag to render when injecting defaults.
    */
-  defaultTag?: DefaultTag;
+  tag?: DefaultTag;
 
   /**
    * Optional human-readable project label (appears in CLI output).
@@ -198,8 +141,49 @@ export interface DocDefaultsConfig {
   /**
    * One or more targets to process in order.
    */
-  targets: DocDefaultsTarget[];
+  targets: TargetConfig[];
 }
+
+/**
+ * A single “target” to inject/assert defaults for.
+ * Each target binds a TypeScript **source** (where the interface is declared),
+ * a **.d.ts** surface (where we inject doc comments), and a **defaults symbol**
+ * in your constants module.
+ */
+export interface TargetConfig {
+  /**
+   * Short cosmetic label for logs (e.g., the feature or bundle name).
+   */
+  name?: string;
+
+  /**
+   * Repo-relative path to the TypeScript file that declares the interface
+   * (e.g., `packages/foo/src/types.ts`).
+   * Used to infer the emitted `.d.ts` location when `dtsPath` is omitted.
+   */
+  types: string;
+
+  /**
+   * Optional repo-relative path to the concrete `.d.ts` to rewrite
+   * (e.g., `packages/foo/dist/types/types.d.ts`).
+   * If omitted, we attempt to infer it from `tsconfig` (`rootDir`/`declarationDir`).
+   */
+  dts?: string;
+
+  /**
+   * The **interface name** inside the `.d.ts` that should receive `@default`
+   * doc comments.
+   */
+  interface: string;
+
+  /**
+   * The symbol (or dotted path) inside the module where your defaults are defined.
+   * Examples:
+   *   - `"DEFAULTS"` (top-level object)
+   *   - `"DEFAULTS.consent"` (nested property)
+   */
+  member: string;
+};
 
 /**
  * Per-target result for an **inject** run.

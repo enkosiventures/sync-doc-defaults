@@ -1,12 +1,6 @@
 import path from 'node:path';
 import { DefaultTag, Jsdoc } from '../types.js';
 
-// export type DefaultTag = 'default' | 'defaultValue';
-
-// export type Jsdoc = {
-//   description: string[]; // trimmed lines (no leading '*')
-//   tags: Array<{ tag: string; text: string }>;
-// };
 
 /** Choose the indent for the new doc: prefer the property's indent.
  * If there was a doc and it's very close (within 1 char), keep it; otherwise
@@ -53,7 +47,7 @@ export function extractLeadingJsdoc(
   if (blockEnd !== -1) {
     const blockStart = fullText.lastIndexOf('/**', blockEnd - 2);
     if (blockStart !== -1) {
-      // NEW: include the line's leading whitespace before the '/**'
+      // Include the line's leading whitespace before the '/**'
       const lineStart = fullText.lastIndexOf('\n', blockStart - 1) + 1;
 
       const between = fullText.slice(blockEnd + 2, headStart);
@@ -167,8 +161,6 @@ export function upsertDefaultForProp(
 
   const existingDocIndent = found.range ? detectDocIndent(fullText, found.range[0]) : undefined;
   const starPad = detectStarPadFromDoc(found.text);
-
-  // IMPORTANT: property indent is the first parameter
   const baseIndent = chooseDocIndent(propIndent, existingDocIndent);
 
   const parsed = parseJsdoc(found.text);
@@ -182,10 +174,18 @@ export function upsertDefaultForProp(
   });
 
   if (found.range) {
-    return fullText.slice(0, found.range[0]) + next + '\n' + fullText.slice(found.range[1]);
+    // If the original docblock is followed by a newline already, don’t add another.
+    const afterChar = fullText[found.range[1]] ?? '';
+    const sep = afterChar === '\n' ? '' : '\n';
+    return fullText.slice(0, found.range[0]) + next + sep + fullText.slice(found.range[1]);
   }
-  return fullText.slice(0, propHeadStart) + next + '\n' + fullText.slice(propHeadStart);
+
+  // No existing doc: ensure there is exactly one newline between our new doc and the head.
+  const afterChar = fullText[propHeadStart] ?? '';
+  const sep = afterChar === '\n' ? '' : '\n';
+  return fullText.slice(0, propHeadStart) + next + sep + fullText.slice(propHeadStart);
 }
+
 
 
 /** Extract existing default literal text from a JSDoc (accepts @default or @defaultValue). */
