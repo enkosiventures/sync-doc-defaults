@@ -33,6 +33,7 @@ describe('CLI --ts flag', () => {
     cwd = await mkTmp();
 
     // minimal project: TS constants + d.ts to inject into + config + tsconfig
+    await write(path.join(cwd, 'package.json'), JSON.stringify({ type: 'module' }, null, 2));
     await write(path.join(cwd, 'src/constants.ts'), `export const DEFAULTS = { foo: "bar" }`);
     await write(path.join(cwd, 'src/types.ts'), `export interface Example { foo?: string; }`);
     await write(path.join(cwd, 'dist/types/types.d.ts'), `export interface Example { foo?: string; }`);
