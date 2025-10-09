@@ -37,18 +37,18 @@ export async function loadModuleSmart(
   const ext = path.extname(defaultsModulePathAbs).toLowerCase();
 
   if (ext === '.json') {
-    logger.log(`Loading JSON module ${rel(opts.repoRoot, defaultsModulePathAbs)}`);
+    logger.dbg(`Loading JSON module ${rel(opts.repoRoot, defaultsModulePathAbs)}`);
     return JSON.parse(await fs.promises.readFile(defaultsModulePathAbs, 'utf8'));
   }
 
   if (ext === '.js' || ext === '.mjs' || ext === '.cjs') {
-    logger.log(`Loading JS module ${rel(opts.repoRoot, defaultsModulePathAbs)}`);
+    logger.dbg(`Loading JS module ${rel(opts.repoRoot, defaultsModulePathAbs)}`);
     const mod = await import(pathToFileURL(defaultsModulePathAbs).href);
     return mod?.default ?? mod;
   }
 
   if (ext === '.ts' || ext === '.tsx') {
-    logger.log(`Loading TS/TSX module ${rel(opts.repoRoot, defaultsModulePathAbs)}`);
+    logger.dbg(`Loading TS/TSX module ${rel(opts.repoRoot, defaultsModulePathAbs)}`);
     // Decide TS mode up-front so the built-JS path can fallback to TS when it fails.
     const mode =
       opts.tsMode ??
