@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import fs from 'node:fs/promises';
+import fs, { writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import os from 'node:os';
 import { execFile } from 'node:child_process';
@@ -42,6 +42,10 @@ describe('docdefaults CLI (e2e)', () => {
 
   beforeEach(async () => {
     cwd = await mkTmp();
+    await writeFile(
+      path.join(cwd, 'package.json'),
+      JSON.stringify({ type: 'module' }, null, 2)
+    );
     constants = path.join(cwd, 'constants.js');
     dts = path.join(cwd, 'types.d.ts');
     await fs.copyFile(path.join(FIX, 'constants.js'), constants);
