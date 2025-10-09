@@ -37,7 +37,7 @@ export interface ExampleOptions {
 }
 ```
 
-…but those defaults actually live elsewhere:
+...but those defaults actually live elsewhere:
 
 ```ts
 // constants.ts

@@ -16,7 +16,7 @@ export interface Bystander {
 }
 `;
 
-describe('inject/assert – upsert into existing docblocks & newline handling (no creation)', () => {
+describe('inject/assert - upsert into existing docblocks & newline handling (no creation)', () => {
   const IFACE_PRESEEDED = `
 export interface NoDocs {
   /**
@@ -64,7 +64,7 @@ export interface NoDocs {
   });
 });
 
-describe('inject/assert – normalization, CRLF, quoted/readonly, indent (preseeded blocks)', () => {
+describe('inject/assert - normalization, CRLF, quoted/readonly, indent (preseeded blocks), no-block insertion', () => {
   const IFACE_MIXED_PRESEEDED = `
 export interface Mixed {
   /**
@@ -85,6 +85,8 @@ export interface Mixed {
    * @default true
    */
   delta?: boolean;
+
+  echo?: string;
 
   /**
    * preseeded for quoted
@@ -107,6 +109,7 @@ export interface Mixed {
         bravo: 42,
         charlie: 'legacy', // normalize defaultValue -> default (preferred)
         delta: true,       // already correct
+        echo: 'new',       // no preseeded doc, so create
         'with-dash': 'w',
         'ro-name': 'r',
       },
@@ -134,9 +137,13 @@ export interface Mixed {
     const deltaDoc = docBlockFor(t, 'delta?: boolean;');
     expect((deltaDoc.match(/@default\s+true/g) ?? []).length).toBe(1);
 
-    // CRLF preserved around bravo doc; tag present (don’t assert exact whitespace)
+    // CRLF preserved around bravo doc; tag present (don't assert exact whitespace)
     const bravoDoc = docBlockFor(t, 'bravo?: number;');
     expect(bravoDoc).toMatch(/@default\s+42/);
+
+    // no-block echo got a new block with correct indent (4 spaces)
+    const echoDoc = docBlockFor(t, 'echo?: string;');
+    expect(echoDoc).toMatch(/@default "new"/);
 
     // quoted + readonly names supported
     const withDashDoc = docBlockFor(t, '"with-dash"?: string;');
@@ -154,7 +161,7 @@ describe('formatting edge cases for default literals', () => {
   it('truncates long JSON and stringifies non-serializable values', () => {
     const huge = { a: 'x'.repeat(500) };
     const lit = formatDefaultLiteral(huge);
-    expect(lit.includes('…')).toBe(true);
+    expect(lit.includes('...')).toBe(true);
     expect(lit.length).toBeLessThanOrEqual(130);
 
     // Non-serializable
@@ -228,3 +235,69 @@ describe('multi-interface files', () => {
     expect(assertion.ok).toBe(true);
   });
 });
+
+describe('tag normalization when both tags present', () => {
+  it('removes non-preferred tag when both @default and @defaultValue exist', () => {
+    const dts = `interface X {
+      /**
+       * Has both tags
+       * @default "wrong"
+       * @defaultValue "also-wrong"
+       */
+      foo?: string;
+    }`;
+    
+    const res = injectDefaultsIntoDts({
+      dtsText: dts,
+      interfaceName: 'X',
+      defaults: { foo: 'correct' },
+      preferredTag: 'default',
+    });
+    
+    // Should have exactly one @default with correct value
+    const matches = res.updatedText.match(/@default "correct"/g);
+    expect(matches).toHaveLength(1);
+    
+    // Should not have @defaultValue anymore
+    expect(res.updatedText).not.toContain('@defaultValue');
+  });
+});
+
+describe('special characters in string defaults', () => {
+  it('properly escapes newlines, tabs, quotes in string values', () => {
+    const dts = `interface X { 
+      nl?: string; 
+      tab?: string; 
+      quote?: string;
+      backslash?: string;
+    }`;
+    
+    const defaults = { 
+      nl: 'line1\nline2',
+      tab: 'col1\tcol2',
+      quote: '"quoted"',
+      backslash: 'path\\to\\file',
+    };
+    
+    const res = injectDefaultsIntoDts({
+      dtsText: dts,
+      interfaceName: 'X',
+      defaults,
+      preferredTag: 'default',
+    });
+    
+    expect(res.updatedText).toContain('@default "line1\\nline2"');
+    expect(res.updatedText).toContain('@default "col1\\tcol2"');
+    expect(res.updatedText).toContain('@default "\\"quoted\\""');
+    expect(res.updatedText).toContain('@default "path\\\\to\\\\file"');
+    
+    // Verify assert can read them back correctly
+    const assertion = assertDefaultsInDts({
+      dtsText: res.updatedText,
+      interfaceName: 'X',
+      defaults,
+    });
+    expect(assertion.ok).toBe(true);
+  });
+});
+

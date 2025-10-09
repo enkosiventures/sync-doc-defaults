@@ -44,7 +44,7 @@ export interface Sample {
   readonly 'ro-name'?: string;
 
   /**
-   * Dotted names aren’t props, just to ensure parser is stable
+   * Dotted names aren't props, just to ensure parser is stable
    */
   nested?: {
     /**
@@ -108,22 +108,21 @@ describe('locator basics', () => {
     expect(slice.includes('?:')).toBe(true);
   });
 
-  it('lists props as parsed by current implementation (normalized names, includes nested inner)', () => {
+  it('lists props as parsed by current implementation (normalized names, NO nested inner)', () => {
     const props = listInterfaceProps(BASE_IFACE, 'Sample');
     const names = props.map(p => p.name).sort();
 
     // Current behavior of the locator:
     expect(names).toContain('with-dash');  // quotes normalized
     expect(names).toContain('ro-name');    // quotes normalized
-    expect(names).toContain('inner');      // nested picked up by regex scan
+    expect(names).not.toContain('inner');  // NOT picked up - it's not a direct prop of Sample
 
     expect(names).toContain('age');
     expect(names).toContain('code');
     expect(names).toContain('count');
     expect(names).toContain('enabled');
     expect(names).toContain('name');
-
-    expect(names).not.toContain('nested'); // parent container often skipped
+    expect(names).toContain('nested');     // The actual property that has the object type
   });
 });
 
@@ -217,7 +216,7 @@ describe('injectDefaultsIntoDts (flat iface to avoid iterative-loop edge cases)'
     expect(/@default\s+"RO"|@defaultValue\s+"RO"/.test(t)).toBe(true);
 
     // NOTE: we intentionally skip a second injector pass here—if your injector
-    // runs iterative rounds internally, a second external pass isn’t needed and
+    // runs iterative rounds internally, a second external pass isn't needed and
     // can mask non-convergent whitespace/tag toggles.
   });
 
@@ -283,5 +282,23 @@ describe('assertDefaultsInDts (built on flat-injected text)', () => {
 
     expect(assertion.ok).toBe(true);
     expect(assertion.mismatches).toEqual([]);
+  });
+});
+
+describe('ReDoS protection', () => {
+  it('handles extremely long type annotations without hanging', () => {
+    // Use a more realistic long type that won't break the parser
+    const longType = '{ ' + 'prop: string; '.repeat(100) + '}';
+    const dts = `interface X {
+      foo?: ${longType};
+    }`;
+    
+    const start = Date.now();
+    const props = listInterfaceProps(dts, 'X');
+    const elapsed = Date.now() - start;
+    
+    expect(elapsed).toBeLessThan(100);
+    expect(props).toHaveLength(1);
+    expect(props[0].name).toBe('foo');
   });
 });

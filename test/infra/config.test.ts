@@ -64,7 +64,15 @@ describe('config.ts', () => {
       await w(mjs,  `export default { defaults: './d.mjs', targets: [] }`);
 
       const found = await discoverConfig(tmp);
-      expect(found).toBe(mjs); // first in your CANDIDATE_FILES array
+      expect(found).toBe(mjs);
+    });
+
+    it('honors sync-doc-defaults.config.mjs format', async () => {
+      const mjs = path.join(tmp, 'sync-doc-defaults.config.mjs');
+      await w(mjs,  `export default { defaults: './d.mjs', targets: [] }`);
+
+      const found = await discoverConfig(tmp);
+      expect(found).toBe(mjs);
     });
   });
 
@@ -82,6 +90,24 @@ describe('config.ts', () => {
             member: 'DEFAULTS',
           },
         ],
+      };
+      await w(cfgPath, JSON.stringify(cfgObj, null, 2));
+
+      const cfg = await loadConfig(cfgPath);
+      expect(cfg).toEqual(cfgObj);
+    });
+
+    it('accepts config with optional name field', async () => {
+      const cfgPath = path.join(tmp, 'docdefaults.config.json');
+      const cfgObj = {
+        defaults: 'constants.js',
+        targets: [{
+          // no name field - should be valid
+          types: 'src/options.ts',
+          dts: 'types.d.ts',
+          interface: 'ExampleOptions',
+          member: 'DEFAULTS',
+        }],
       };
       await w(cfgPath, JSON.stringify(cfgObj, null, 2));
 

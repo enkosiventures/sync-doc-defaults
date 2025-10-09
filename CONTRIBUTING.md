@@ -33,9 +33,9 @@ pnpm test
 
 ### Project structure
 
-* `src/` – library + CLI
-* `src/dts-ops/` – parsing/injection/assertion internals
-* `test/` – unit + e2e tests
+* `src/` - library + CLI
+* `src/dts-ops/` - parsing/injection/assertion internals
+* `test/` - unit + e2e tests
 
 ### Commit style
 

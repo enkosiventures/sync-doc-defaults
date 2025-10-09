@@ -51,7 +51,7 @@ describe('extractDeclarationBlock', () => {
     expect(block!).toContain('export declare interface WithGeneric<');
     // The body should be closed properly
     expect(block!.trim().endsWith('}')).toBe(true);
-    // It should include inner JSDoc lines if present above the decl (there aren’t any here; the inner one is *inside* the body)
+    // It should include inner JSDoc lines if present above the decl (there aren't any here; the inner one is *inside* the body)
     expect(block!).not.toMatch(/Doc inside interface body.*@default/s);
   });
 

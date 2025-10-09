@@ -36,7 +36,18 @@ export function injectDefaultsIntoDts(params: {
   const missing: Array<{ interfaceName: string; prop: string }> = [];
 
   // Build tasks + compute expected literals
-  for (const [prop, value] of Object.entries(defaults)) {
+  for (const prop in defaults) {
+    if (!Object.prototype.hasOwnProperty.call(defaults, prop)) continue;
+    
+    let value: unknown;
+    try {
+      value = defaults[prop];
+    } catch (e) {
+      // Getter threw, skip this property
+      missing.push({ interfaceName, prop });
+      continue;
+    }
+
     const p = props.find((p) => p.name === prop);
     if (!p) {
       missing.push({ interfaceName, prop });

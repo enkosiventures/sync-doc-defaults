@@ -9,7 +9,7 @@ const before = `
  * - Existing @default tag with incorrect value
  * - Existing @defaultValue tag with incorrect value
  * - Existing @default tag with correct value (should not change)
- * - No docblock at all (TODO: not currently working)
+ * - No docblock at all
  * - Field with no default value (should not get a @default tag)
  */
 export interface ConsentOptions {
@@ -33,9 +33,6 @@ export interface ConsentOptions {
      * @default '__trackkit_consent__'
      */
     storageKey?: string;
-    /**
-     * If true, disables automatic persistence of consent state to localStorage.
-     */
     disablePersistence?: boolean;
     /**
      * Current policy/version. If stored version < this => re-prompt (reset to pending).
@@ -105,7 +102,7 @@ describe('ConsentOptions inject (bottom-up)', () => {
     );
     expect(r.updatedText).toMatch(/\n {4}\/\*\*\n {4} \* /);        // opening + a starred line with ' * '
     expect(r.updatedText).toMatch(/@default "pending"/);
-    // expect(r.updatedText).toMatch(/\n {4} \* @default true\n/);     // another field block carries same style
+    expect(r.updatedText).toMatch(/\n {4} \* @default true\n/);     // another field block carries same style
 
     // find the indent of the requireExplicit property
     const indentRE = /\n([ \t]+)requireExplicit\?\s*:\s*boolean;/;
@@ -145,9 +142,56 @@ describe('ConsentOptions inject (bottom-up)', () => {
     // star lines also aligned with property indent and have a space after '*'
     const starLine = `\n${propIndent} * @default "bar"`;
     expect(updatedText).toContain(starLine);
+  });
 
+  it('handles properties with quotes in names', () => {
+    const dts = `interface X { 
+      "foo-bar"?: string; 
+      'baz-qux'?: number; 
+    }`;
+    const defaults = { 'foo-bar': 'test', 'baz-qux': 42 };
+    const r = injectDefaultsIntoDts({
+      dtsText: dts,
+      interfaceName: 'X',
+      defaults,
+      preferredTag: 'default',
+    });
+    expect(r.updatedText).toContain('@default "test"');
+    expect(r.updatedText).toContain('@default 42');
+    expect(r.updatedCount).toBe(2);
+  });
 
-    // The opening line should be indented to the property (4 spaces), not 8
-    // expect(updatedText).toMatch(/\n {4}\/\*\*\n {4} \* @default "bar"/);
+  it('handles readonly properties', () => {
+    const dts = `interface X { readonly foo?: string; }`;
+    const defaults = { foo: 'bar' };
+    const r = injectDefaultsIntoDts({
+      dtsText: dts,
+      interfaceName: 'X',
+      defaults,
+      preferredTag: 'default',
+    });
+    expect(r.updatedText).toContain('@default "bar"');
+  });
+
+  it('escapes special characters in string defaults', () => {
+    const defaults = { 
+      nl: 'line1\nline2',
+      tab: 'col1\tcol2',
+      quote: '"quoted"',
+    };
+    const dts = `interface X {
+      nl?: string;
+      tab?: string;
+      quote?: string;
+    }`;
+    const r = injectDefaultsIntoDts({
+      dtsText: dts,
+      interfaceName: 'X',
+      defaults,
+      preferredTag: 'default',
+    });
+    expect(r.updatedText).toContain('@default "line1\\nline2"');
+    expect(r.updatedText).toContain('@default "col1\\tcol2"');
+    expect(r.updatedText).toContain('@default "\\"quoted\\""');
   });
 });

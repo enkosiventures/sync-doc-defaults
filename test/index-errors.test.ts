@@ -110,4 +110,138 @@ describe('index (errors & branches)', () => {
     await inject(cfgFile, { repoRoot: cwd });
     await expect(assert(cfgFile, { repoRoot: cwd })).resolves.not.toThrow();
   });
+
+  it('rejects path traversal attempts in defaults path', async () => {
+    const dts = path.join(cwd, 'types.d.ts');
+    await write(dts, `export interface Example { foo?: string; }`);
+    
+    const cfg: DocDefaultsConfig = {
+      defaults: '../../../etc/passwd',
+      targets: [{ 
+        name: 'X', 
+        types: 'src/x.ts', 
+        dts: 'types.d.ts', 
+        interface: 'Example', 
+        member: 'DEFAULTS' 
+      }],
+    };
+    
+    const cfgFile = path.join(cwd, 'malicious.config.json');
+    await write(cfgFile, JSON.stringify(cfg));
+    
+    await expect(inject(cfgFile, { repoRoot: cwd }))
+      .rejects.toThrow(/escapes project root/);
+  });
+
+  it('rejects path traversal attempts in dts path', async () => {
+    const constants = path.join(cwd, 'constants.js');
+    await write(constants, `export const DEFAULTS = { foo: "bar" }`);
+    
+    const cfg: DocDefaultsConfig = {
+      defaults: 'constants.js',
+      targets: [{ 
+        name: 'X', 
+        types: 'src/x.ts', 
+        dts: '../../../../etc/passwd', 
+        interface: 'Example', 
+        member: 'DEFAULTS' 
+      }],
+    };
+    
+    const cfgFile = path.join(cwd, 'malicious.config.json');
+    await write(cfgFile, JSON.stringify(cfg));
+    
+    await expect(inject(cfgFile, { repoRoot: cwd }))
+      .rejects.toThrow(/escapes project root/);
+  });
+
+  it('supports nested member paths with dot notation', async () => {
+    const constants = path.join(cwd, 'constants.js');
+    const dts = path.join(cwd, 'types.d.ts');
+    await write(constants, `
+      export const DEFAULTS = { 
+        subsection: {
+          foo: "nested-bar"
+        }
+      }
+    `);
+    await write(dts, `export interface Example { foo?: string; }`);
+    
+    const cfg: DocDefaultsConfig = {
+      defaults: 'constants.js',
+      targets: [{ 
+        name: 'X', 
+        types: 'src/x.ts', 
+        dts: 'types.d.ts', 
+        interface: 'Example', 
+        member: 'DEFAULTS.subsection' 
+      }],
+    };
+    
+    const cfgFile = path.join(cwd, 'nested.config.json');
+    await write(cfgFile, JSON.stringify(cfg));
+    
+    await inject(cfgFile, { repoRoot: cwd });
+    const text = await fs.readFile(dts, 'utf8');
+    expect(text).toMatch(/@default "nested-bar"/);
+  });
+
+  it('accepts config targets without optional name field', async () => {
+    const constants = path.join(cwd, 'constants.js');
+    const dts = path.join(cwd, 'types.d.ts');
+    await write(constants, `export const DEFAULTS = { foo: "bar" }`);
+    await write(dts, `export interface Example { foo?: string; }`);
+    
+    const cfg: DocDefaultsConfig = {
+      defaults: 'constants.js',
+      targets: [{ 
+        // no name field - should be valid
+        types: 'src/x.ts', 
+        dts: 'types.d.ts', 
+        interface: 'Example', 
+        member: 'DEFAULTS' 
+      }],
+    };
+    
+    const cfgFile = path.join(cwd, 'no-name.config.json');
+    await write(cfgFile, JSON.stringify(cfg));
+    
+    await expect(inject(cfgFile, { repoRoot: cwd })).resolves.not.toThrow();
+    const text = await fs.readFile(dts, 'utf8');
+    expect(text).toMatch(/@default "bar"/);
+  });
+
+  it('handles defaults module with throwing getters gracefully', async () => { // FAILING
+    const constants = path.join(cwd, 'constants.js');
+    const dts = path.join(cwd, 'types.d.ts');
+    
+    // Create a module with a throwing getter
+    await write(constants, `
+      export const DEFAULTS = {
+        get foo() { throw new Error("Getter explosion!"); }
+      };
+    `);
+    await write(dts, `export interface Example { foo?: string; }`);
+    
+    const cfg: DocDefaultsConfig = {
+      defaults: 'constants.js',
+      targets: [{ 
+        name: 'X', 
+        types: 'src/x.ts', 
+        dts: 'types.d.ts', 
+        interface: 'Example', 
+        member: 'DEFAULTS' 
+      }],
+    };
+    
+    const cfgFile = path.join(cwd, 'throwing.config.json');
+    await write(cfgFile, JSON.stringify(cfg));
+    
+    // Should handle the error gracefully (might log but not crash)
+    await inject(cfgFile, { repoRoot: cwd });
+    
+    // The property with throwing getter won't be injected
+    const text = await fs.readFile(dts, 'utf8');
+    expect(text).not.toContain('@default');
+  });
 });

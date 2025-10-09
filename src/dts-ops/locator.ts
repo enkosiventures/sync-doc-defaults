@@ -1,4 +1,4 @@
-/** Find the character range [start,end) of a named interface body (“{ … }”). */
+/** Find the character range [start,end) of a named interface body (“{ ... }”). */
 export function findInterfaceBody(text: string, interfaceName: string): { bodyStart: number; bodyEnd: number } | undefined {
   // Support "export interface X" or "interface X"
   const re = new RegExp(`\\b(?:export\\s+)?interface\\s+${escapeRe(interfaceName)}\\s*{`, 'm');
@@ -32,26 +32,20 @@ export function listInterfaceProps(
   const seg = text.slice(body.bodyStart, body.bodyEnd);
   const offset = body.bodyStart;
 
+  // Start-of-line anchored (multiline) for CRLF/LF safety.
   // readonly?  "foo" | 'foo' | foo  with optional ?, colon, then until semicolon.
   const propRe =
-  /^[ \t]*(?:readonly\s+)?(?:"([^"]+)"|'([^']+)'|([A-Za-z_$][\w$]*))\??\s*:\s*[^;{]{1,5000};/gm;
+    /^([ \t]*)(?:readonly\s+)?(?:"([^"]+)"|'([^']+)'|([A-Za-z_$][\w$]*))\??\s*:\s*[^;]*;/gm;
 
   const out: Array<{ name: string; headStart: number; indent: string }> = [];
   let m: RegExpExecArray | null;
 
   while ((m = propRe.exec(seg))) {
-    const fullMatch = m[0];
-    const matchStart = m.index; // start of the line (includes leading spaces/tabs)
-
-    // Extract the indentation from the beginning of THIS match
-    const indent = (fullMatch.match(/^[ \t]*/)?.[0]) ?? '';
-
-    // Property head starts at: start of match + indent length
-    const headStart = offset + matchStart + indent.length;
-
-    // Property name: "foo" | 'foo' | foo
-    const name = (m[1] ?? m[2] ?? m[3])!;
-
+    const indent = m[1] || '';
+    const name = m[2] || m[3] || m[4];
+    if (!name) continue;
+    // m.index is the start-of-line thanks to ^ with /m
+    const headStart = offset + m.index + indent.length;
     out.push({ name, headStart, indent });
   }
   return out;

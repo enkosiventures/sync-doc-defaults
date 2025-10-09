@@ -33,11 +33,29 @@ function detectStarPadFromDoc(raw?: string): ' ' | '' {
   return ' ';
 }
 
-/** Extract a JSDoc (/** … *\/) or a consecutive block of //-lines directly above headStart. */
+/** Extract a JSDoc (/** ... *\/) or a consecutive block of //-lines directly above headStart. */
 export function extractLeadingJsdoc(
   fullText: string,
   headStart: number
 ): { range?: [number, number]; text?: string } {
+
+  // Look back a small, bounded window to detect an immediate /** block.
+  // Bound the scan to avoid pathological scans on huge files:
+  const windowStart = Math.max(0, headStart - 2000);
+  const prefix = fullText.slice(windowStart, headStart);
+
+  // Trim trailing whitespace to see what's directly before the member
+  const trimmedTail = prefix.replace(/\s+$/u, '');
+  const hasImmediateBlock = trimmedTail.endsWith('*/');
+
+  if (!hasImmediateBlock) {
+    // No docblock directly attached → return a neutral descriptor.
+    return {
+      range: [headStart, headStart],
+      text: '',         // important: truthy empty doc means "no existing doc"
+    };
+  }
+
   // Move left over whitespace before the property head
   let i = headStart;
   while (i > 0 && /[ \t\r\n]/.test(fullText[i - 1])) i--;
@@ -157,7 +175,21 @@ export function upsertDefaultForProp(
   literal: string,
   preferredTag: PreferredTag,
 ): string {
+  const EOL = fullText.includes('\r\n') ? '\r\n' : '\n';
   const found = extractLeadingJsdoc(fullText, propHeadStart);
+
+  // If there's no existing block, create one right away.
+  if (!found.text) {
+    // Normalize the indent (preserve “off-by-one” if your locator gave you one)
+    const baseIndent = propIndent ?? '';
+    const block =
+      `${baseIndent}/**${EOL}` +
+      `${baseIndent} * @${preferredTag} ${literal}${EOL}` +
+      `${baseIndent} */${EOL}`;
+
+    // Insert the block once; no iterative re-scan needed
+    return fullText.slice(0, propHeadStart) + block + fullText.slice(propHeadStart);
+  }
 
   const existingDocIndent = found.range ? detectDocIndent(fullText, found.range[0]) : undefined;
   const starPad = detectStarPadFromDoc(found.text);
@@ -200,7 +232,7 @@ export function formatDefaultLiteral(v: unknown): string {
   if (typeof v === 'number' || typeof v === 'boolean' || v === null) return String(v);
   try {
     const s = JSON.stringify(v);
-    return s.length > 120 ? s.slice(0, 117) + '…' : s;
+    return s.length > 120 ? s.slice(0, 117) + '...' : s;
   } catch {
     return String(v);
   }

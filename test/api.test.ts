@@ -61,6 +61,22 @@ describe('docdefaults', () => {
     await expect(assertConfig()).resolves.not.toThrow();
   });
 
+  it('rejects path traversal attempts', async () => {
+    const maliciousConfig = {
+      defaults: '../../../etc/passwd',
+      targets: [{
+        name: 'Evil',
+        types: 'src/types.ts',
+        dts: '../../../../etc/passwd',
+        interface: 'Example',
+        member: 'DEFAULTS',
+      }],
+    };
+    const cfgFile = path.join(tmp, 'evil.config.json');
+    await fs.writeFile(cfgFile, JSON.stringify(maliciousConfig), 'utf8');
+    await expect(inject(cfgFile, { repoRoot: tmp })).rejects.toThrow(/escapes project root/);
+  });
+
   async function injectConfig() {
     const cfgFile = path.join(tmp, 'docdefaults.config.json');
     await fs.writeFile(cfgFile, JSON.stringify(config), 'utf8');
