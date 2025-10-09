@@ -4,7 +4,8 @@ import path from 'node:path';
 import os from 'node:os';
 import { execFile } from 'node:child_process';
 
-const BIN = path.resolve(__dirname, '../dist/cli.js');
+
+const BIN = path.resolve(__dirname, '../dist/cli.cjs');
 const FIX = path.resolve(__dirname, 'fixtures');
 
 function runCli(args: string[], opts: { cwd: string; env?: NodeJS.ProcessEnv }):

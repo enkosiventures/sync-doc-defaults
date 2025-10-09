@@ -53,7 +53,7 @@ jobs:
 
       # Quick sanity check the built CLI exists and prints help
       - name: Smoke test CLI
-        run: node dist/cli.js --help
+        run: node dist/cli.cjs --help
 
       # Optional coverage artifact
       # - name: Coverage

@@ -26,8 +26,8 @@
   "packageManager": "pnpm@10.17.0",
   "types": "dist/index.d.ts",
   "bin": {
-    "sync-doc-defaults": "./dist/cli.js",
-    "sdd": "./dist/cli.js"
+    "sync-doc-defaults": "./dist/cli.cjs",
+    "sdd": "./dist/cli.cjs"
   },
   "files": [
     "dist/**",
@@ -46,7 +46,7 @@
       "import": "./dist/index.js"
     },
     "./cli": {
-      "import": "./dist/cli.js"
+      "import": "./dist/cli.cjs"
     },
     "./types": {
       "types": "./dist/types.d.ts",

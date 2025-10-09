@@ -13,7 +13,7 @@ async function write(file: string, text: string) {
 }
 function runCli(cwd: string, args: string[], env?: Record<string, string>) {
   return new Promise<{ code: number; out: string; err: string }>((resolve) => {
-    const ps = spawn('node', [path.resolve(__dirname, '../dist/cli.js'), ...args], {
+    const ps = spawn('node', [path.resolve(__dirname, '../dist/cli.cjs'), ...args], {
       cwd,
       env: { ...process.env, ...env },
       stdio: ['ignore', 'pipe', 'pipe'],

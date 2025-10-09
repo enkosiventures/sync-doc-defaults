@@ -18,14 +18,16 @@ export default defineConfig([
   // 2) CLI build
   {
     entry: { cli: 'src/cli.ts' },
-    format: ['esm'],
+    format: ['cjs'],
     platform: 'node',
     target: 'node18',
     dts: false,
-    sourcemap: true,
+    clean: false,
+    sourcemap: false,
     splitting: false,
     treeshake: true,
     external: ['typescript'],
     banner: { js: '#!/usr/bin/env node' },
+    outExtension: () => ({ js: '.cjs' }),
   },
 ]);
