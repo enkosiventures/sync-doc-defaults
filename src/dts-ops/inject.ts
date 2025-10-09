@@ -42,7 +42,7 @@ export function injectDefaultsIntoDts(params: {
     let value: unknown;
     try {
       value = defaults[prop];
-    } catch (e) {
+    } catch (_) {
       // Getter threw, skip this property
       missing.push({ interfaceName, prop });
       continue;
