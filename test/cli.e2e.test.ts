@@ -68,8 +68,8 @@ describe('docdefaults CLI (e2e)', () => {
     await write(cfgPath, JSON.stringify(cfg));
 
     const { code, stderr } = await runCli(['assert', '--config', cfgPath], { cwd });
-    expect(code).toBe(1);
     expect(stderr).toMatch(/expected @default/i);
+    expect(code).toBe(1);
   });
 
   it('inject works (code=0) and is idempotent via CLI', async () => {
