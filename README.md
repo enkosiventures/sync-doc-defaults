@@ -12,13 +12,13 @@
 
 ### Key benefits
 
-| Feature | Description |
-| -------- | ------------ |
-| **Inject mode** | Synchronize `@default` JSDoc tags automatically |
-| **Assert mode** | Ensure `.d.ts` reflects real runtime values |
-| **TS-aware** | Works with both TypeScript sources and compiled JS |
-| **Simple config** | Just point to your defaults and interface |
-| **CI-ready** | Clear exit codes and machine-readable results |
+| Feature           | Description                                        |
+| ----------------- | -------------------------------------------------- |
+| **Inject mode**   | Synchronize `@default` JSDoc tags automatically    |
+| **Assert mode**   | Ensure `.d.ts` reflects real runtime values        |
+| **TS-aware**      | Works with both TypeScript sources and compiled JS |
+| **Simple config** | Just point to your defaults and interface          |
+| **CI-ready**      | Clear exit codes and machine-readable results      |
 
 ---
 
