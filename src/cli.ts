@@ -6,14 +6,14 @@ import { EXIT_CODES } from './constants.js';
 
 
 // exit codes:
-// 0 = success
+// 0 = success/help
 // 1 = assertion/validation failure
 // 2 = config not found
 // 3 = general error
 
 type Subcommand = 'inject' | 'assert';
 
-function usage(msg?: string, code?: number): never {
+function usage(code: number, msg?: string): never {
   if (msg) console.error(msg);
   console.error(`
 sync-doc-defaults v1.0.0
@@ -50,7 +50,7 @@ Examples:
   sdd inject --dry --debug-paths
   pnpm dlx sync-doc-defaults inject -c ./docdefaults.config.mjs
 `);
-  process.exit(code ?? EXIT_CODES.VALIDATION_ERROR);
+  process.exit(code);
 }
 
 function coerceTsMode(val: any | undefined): TsMode | undefined {
@@ -63,8 +63,17 @@ function coerceTsMode(val: any | undefined): TsMode | undefined {
 async function main() {
   try {
     const argv = process.argv.slice(2);
+
+    // --help / -h and --version fast paths
+    if (argv.includes('--help') || argv.includes('-h')) usage(0);
+    if (argv.includes('--version') || argv.includes('-v')) {
+      // lazy load to avoid ESM import at top
+      const pkg = await import('../package.json', { assert: { type: 'json' } } as any).catch(() => null);
+      console.log(pkg?.default?.version ?? 'unknown');
+      process.exit(0);
+    }
     const cmd = argv[0] as Subcommand;
-    if (!cmd || (cmd !== 'inject' && cmd !== 'assert')) usage('Missing or invalid command');
+    if (!cmd || (cmd !== 'inject' && cmd !== 'assert')) usage(1, 'Missing or invalid command');
 
     let configPath: string | undefined;
     let quiet = false;
@@ -79,9 +88,13 @@ async function main() {
       if (a === '--quiet') { quiet = true; continue; }
       if (a === '--debug-paths') { debugPaths = true; continue; }
       if (a === '--dry') { dryRun = true; continue; }
-      if (a === '--ts') { tsMode = coerceTsMode(argv[++i]); continue; }
       if (a === '--tag') { tag = (argv[++i] === 'defaultValue' ? 'defaultValue' : 'default'); continue; }
-      usage(`Unknown option: ${a}`);
+      if (a === '--ts') {
+        if (!argv[i + 1]) usage(1, 'Missing value for --ts (use on|off|auto)');
+        tsMode = coerceTsMode(argv[++i]);
+        continue;
+      }
+      usage(1, `Unknown option: ${a}`);
     }
 
     if (!configPath) {
