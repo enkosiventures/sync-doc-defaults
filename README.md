@@ -10,15 +10,15 @@
 
 ---
 
-### Key benefits at a glance
+### Key benefits
 
-| Feature           | Description                                     |
-| ----------------- | ----------------------------------------------- |
-| **Inject mode**   | Synchronize `@default` JSDoc tags automatically |
-| **Assert mode**   | Ensure `.d.ts` reflects real runtime values     |
-| **TS-aware**      | Works with both TS sources and compiled JS      |
-| **Simple config** | Just point to your defaults and interface       |
-| **CI-ready**      | Exit codes for clean automation                 |
+| Feature | Description |
+| -------- | ------------ |
+| **Inject mode** | Synchronize `@default` JSDoc tags automatically |
+| **Assert mode** | Ensure `.d.ts` reflects real runtime values |
+| **TS-aware** | Works with both TypeScript sources and compiled JS |
+| **Simple config** | Just point to your defaults and interface |
+| **CI-ready** | Clear exit codes and machine-readable results |
 
 ---
 
@@ -30,7 +30,6 @@ When writing library types, you often want consumers to see *real* default value
 export interface ExampleOptions {
   /**
    * Foo string.
-   * 
    * @default "bar"
    */
   foo?: string;
@@ -41,9 +40,7 @@ export interface ExampleOptions {
 
 ```ts
 // constants.ts
-export const DEFAULTS = {
-  foo: 'bar',
-};
+export const DEFAULTS = { foo: 'bar' };
 ```
 
 Over time, those can drift apart. **SyncDocDefaults** eliminates that duplication.
@@ -62,7 +59,7 @@ pnpm add -D sync-doc-defaults
 npm i -D sync-doc-defaults
 ```
 
-* Requirements: Node 18+
+> Requires **Node 18+**
 
 ---
 
@@ -112,19 +109,22 @@ Options:
 
 Exit codes:
   0 success
-  1 assertion/validation failure
+  1 assertion / validation failure
   2 config not found
-  3 general error
+  3 loading or import error (missing file, tsx, etc.)
+  4 invalid config
+  5 CLI usage error
+  6 unexpected / general error
 ```
 
 ---
 
 ## Configuration
 
-By default, the CLI searches upward from `cwd` for:
+By default, the CLI searches upward from `cwd` for one of:
 
-* `docdefaults.config.(mjs|cjs|js|json)` — **recommended**, short and readable
-* or `sync-doc-defaults.config.(mjs|cjs|js|json)` — explicit alternative
+* `docdefaults.config.(ts|mjs|cjs|js|json)` — **recommended**
+* `sync-doc-defaults.config.(ts|mjs|cjs|js|json)` — explicit alternative
 
 ### Example (ESM)
 
@@ -143,18 +143,10 @@ export default {
   // One or more targets to sync
   targets: [
     {
-      // Type source declaring the interface
-      types: 'src/types.ts',
-
-      // Name of the interface in that file / in the emitted .d.ts
-      interface: 'ExampleOptions',
-
-      // Optional explicit .d.ts (inferred from tsconfig if omitted)
-      dts: 'dist/types.d.ts',
-
-      // Exported symbol or dotted path within your defaults module
-      // e.g. "DEFAULTS" or "DEFAULTS.subsection"
-      member: 'DEFAULTS',
+      types: 'src/types.ts',           // Type source
+      interface: 'ExampleOptions',     // Interface name
+      dts: 'dist/types.d.ts',          // Optional explicit .d.ts path
+      member: 'DEFAULTS',              // Exported symbol or dotted path
     },
   ],
 };
@@ -162,24 +154,25 @@ export default {
 
 ### Resolution rules
 
-* **Config discovery:** upward search for `docdefaults.config.*` or `sync-doc-defaults.config.*`, unless `--config` is provided.
-* **Defaults module (`defaults`):** supports `.ts`, `.js`, or `.json`.
+* **Config discovery:** upward search for `docdefaults.config.*`, unless `--config` is provided.
+* **Defaults module (`defaults`):** supports `.ts`, `.js`, `.json`.
 
-  * `--ts auto` *(default)*: use compiled JS if available, else `tsx`.
+  * `--ts auto` *(default)*: prefer built JS; fallback to `tsx` if present.
   * `--ts on`: require `tsx`; load TS directly.
   * `--ts off`: require compiled JS/JSON only.
-  * Environment override: `SYNCDOCDEFAULTS_TS=on|off|auto`.
-* **Built types (`dts`)**: inferred via your `tsconfig`'s `rootDir` and `declarationDir` if not provided.
+  * Env override: `SYNCDOCDEFAULTS_TS=on|off|auto`
+* **Built types (`dts`)**: inferred via your `tsconfig`’s `rootDir` and `declarationDir` if not specified.
 
 ---
 
 ## Build output requirements
 
-`syn​c-doc-defaults` reads your **generated `.d.ts`** files to update JSDoc. Make sure your build produces them:
+`sync-doc-defaults` reads your **generated `.d.ts`** files to update JSDoc.
+Ensure your build emits them before running.
 
-**Option A — tsc**
+**Example tsconfig:**
+
 ```jsonc
-// tsconfig.json
 {
   "compilerOptions": {
     "rootDir": "src",
@@ -193,25 +186,7 @@ export default {
 }
 ```
 
-Then:
-
-```bash
-pnpm tsc -p tsconfig.json
-```
-
-**Option B — tsup**
-
-```ts
-// tsup.config.ts
-export default {
-  entry: ['src/index.ts', 'src/cli.ts'],
-  format: ['esm', 'cjs'],
-  dts: true,         // emits .d.ts
-  outDir: 'dist'
-};
-```
-
-> **ESM note:** in compiled JS, include the `.js` extension on **all relative imports** (e.g., `import './util/logger.js'`), otherwise Node will error with `ERR_MODULE_NOT_FOUND`.
+> If using ESM, make sure all relative imports in your compiled JS include `.js` extensions (e.g. `import './util/logger.js'`).
 
 ---
 
@@ -230,14 +205,11 @@ In `package.json`:
 }
 ```
 
-If declarations are emitted by a separate `tsc` step, ensure `.d.ts` files exist before running the tool.
-
 ---
 
 ## Complex default values
 
-SyncDocDefaults handles simple literals (`string`, `number`, `boolean`, `null`) automatically.  
-For more complex values like arrays or objects, the tool serializes them as JSON in the `@default` tag.
+**SyncDocDefaults** automatically serializes primitives (`string`, `number`, `boolean`, `null`) and JSON-serializable objects.
 
 ### Arrays and objects
 
@@ -248,7 +220,7 @@ Short values are written inline:
 items?: string[];
 ```
 
-Longer or nested values are written as pretty-printed JSON on separate lines:
+Nested or long objects are pretty-printed:
 
 ```ts
 /**
@@ -261,12 +233,10 @@ Longer or nested values are written as pretty-printed JSON on separate lines:
 options?: { retry?: number; backoffMs?: number };
 ```
 
-> Tip: Multiline `@default` blocks are supported and safe across CRLF/LF line endings.
-
 ### Computed or non-serializable values
 
-Functions, classes, `Date`, `RegExp`, and other computed defaults are **not injected directly**, since they can't be represented as static JSON.
-Instead, document them using a descriptive string:
+Functions, classes, and other computed defaults cannot be serialized automatically.
+Document them manually:
 
 ```ts
 /**
@@ -276,7 +246,7 @@ Instead, document them using a descriptive string:
 transform?: (input: string) => string;
 ```
 
-or reference the symbolic name:
+or:
 
 ```ts
 /**
@@ -286,122 +256,72 @@ or reference the symbolic name:
 transform?: (input: string) => string;
 ```
 
-### Advanced customization
-
-If you need more control, future versions will support a custom serializer hook in config, e.g.:
-
-```js
-serializeDefault(prop, value) {
-  if (typeof value === 'function') return '"<computed>"';
-  return JSON.stringify(value);
-}
-```
-
-This will let you override how specific property values are rendered without breaking assertions.
-
 ---
 
 ## Development
 
-* Modular architecture: `src/infra/*`, `src/dts-ops/*`, etc.
-
-* Tests run with [Vitest](https://vitest.dev/):
+* Modular architecture: `src/dts-ops/*`, `src/infra/*`, etc.
+* Run tests locally:
 
   ```bash
   pnpm vitest
   ```
-
-* `--dry` mode shows the exact interface block(s) that would be changed.
-
----
-
-## FAQ
-
-**Why use `@default` instead of `@defaultValue`?**
-Both are supported. `@default` is recommended for literal values (`defaultTag: 'defaultValue'` to use the alternative).
-
-**Do I need `tsup` or `tsx` installed?**
-No. They're used only for *this* package's own build.
-If your defaults are TS and no compiled JS exists, `--ts auto` will use `tsx` if available; otherwise set `--ts off` and reference built JS/JSON instead.
+* Use `--dry` to preview injected blocks without writing files.
 
 ---
 
 ## Troubleshooting
 
 ### “The JS module appears to be ESM but is being loaded without ESM context”
-You’ll see something like:
-```
 
-[sync-doc-defaults] The JS module appears to be ESM but is being loaded without ESM context.
-Add {"type":"module"} to the nearest package.json or rename the file to ".mjs".
-Path: <path>
-Original error: To load an ES module ... / Unexpected token 'export'
+**Fix**
 
-```
-**Fixes**
-- Add `"type": "module"` to the nearest `package.json`, or
-- Rename the file to `.mjs`, or
-- Run your config/defaults from within a package that already has `"type": "module"`.
+* Add `"type": "module"` to the nearest `package.json`
+* or rename the file to `.mjs`
+* or run within a project that already uses ESM.
 
 ---
 
 ### “Failed to import built JS … (ts mode=off)”
-Typical when ESM imports inside your built JS are missing extensions:
-```
 
-[sync-doc-defaults] Failed to import built JS dist/src/constants.js (ts mode=off).
-Likely fixes:
-• If using ESM, add ".js" to all relative imports (e.g., "./util/logger.js").
-• Or run with "--ts on" (or set SYNCDOCDEFAULTS_TS=on) to load TS via tsx.
-• Or install tsx locally: pnpm add -D tsx
-Paths: rootDir=<rootDir>  outDir=<outDir>  declarationDir=<declarationDir>
-Original error: ERR_MODULE_NOT_FOUND ...
+Likely your compiled JS has missing `.js` extensions.
 
-```
-**Fixes**
-- Add `.js` to all **relative** ESM imports in your compiled JS (Node ESM requires the extension).
-- Or run with `--ts on` / `SYNCDOCDEFAULTS_TS=on` to load TypeScript via `tsx`.
-- Or `pnpm add -D tsx` and keep `--ts auto`.
+**Fix**
+
+* Add `.js` to all **relative** imports in compiled JS
+* or run with `--ts on` / `SYNCDOCDEFAULTS_TS=on`
+* or `pnpm add -D tsx` and keep `--ts auto`
 
 ---
 
 ### “Could not load <path> … build, tsx, or --ts on”
-```
 
-Could not load src/constants.ts.
-Options:
-• Build your project so compiled JS exists in dist/src.
-• Or install tsx locally: pnpm add -D tsx
-• Or run with "--ts on" (or set SYNCDOCDEFAULTS_TS=on) to force TS loading.
+**Fix**
 
-```
-**Fixes**
-- Run your JS build so the compiled file exists in your `outDir`, or
-- Install `tsx` locally and keep `--ts auto`, or
-- Force TypeScript loading with `--ts on`.
+* Build your project so compiled JS exists in your `outDir`
+* or install `tsx` locally and keep `--ts auto`
+* or force TypeScript loading with `--ts on`
 
 ---
 
 ### “SYNCDOCDEFAULTS_TS=on / --ts on … ‘tsx’ is not installed”
-```
 
-SYNCDOCDEFAULTS_TS=on / --ts on set but "tsx" is not installed in the target project.
-Install with: pnpm add -D tsx
-
-```
 **Fix**
-- Add `tsx` to **your project** (not just globally): `pnpm add -D tsx`.
+Add `tsx` to your project (not globally):
+
+```bash
+pnpm add -D tsx
+```
 
 ---
 
-> **Tip:** For path resolution breadcrumbs, pass `--debug-paths` (or set `SYNCDOCDEFAULTS_DEBUG_PATHS=1`).
+> For path-resolution breadcrumbs, pass `--debug-paths` or set `SYNCDOCDEFAULTS_DEBUG_PATHS=1`.
 
 ---
 
 ## License
 
-MIT © [Enkosi Ventures](https://enkosiventures.com).
-Contributions and PRs welcome!
+MIT © [Enkosi Ventures](https://enkosiventures.com)
 
 ---
 
@@ -411,8 +331,7 @@ See [CONTRIBUTING.md](./CONTRIBUTING.md) to get started, and [SECURITY.md](./SEC
 
 ---
 
-### Related packages
+### Related tools
 
-* [`typedoc`](https://typedoc.org/) — complementary tool for generating API docs
-
----
+* [`typedoc`](https://typedoc.org/) — generate full API docs
+* [`changesets`](https://github.com/changesets/changesets) — version & release automation used here
