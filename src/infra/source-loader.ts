@@ -41,8 +41,29 @@ export async function loadModuleSmart(
 
   if (ext === '.js' || ext === '.mjs' || ext === '.cjs') {
     logger.dbg(`Loading JS module ${rel(opts.repoRoot, defaultsModulePathAbs)}`);
-    const mod = await import(pathToFileURL(defaultsModulePathAbs).href);
-    return mod?.default ?? mod;
+    try {
+      const mod = await import(pathToFileURL(defaultsModulePathAbs).href);
+      return mod?.default ?? mod;
+    } catch (err: any) {
+      const msg = String(err?.message || err);
+      // Helpful hints for common DX issues
+      if (/To load an ES module|Unexpected token 'export'/.test(msg)) {
+        throw new Error(
+          `[sync-doc-defaults] The JS module appears to be ESM but is being loaded without ESM context.\n` +
+          `Add {"type":"module"} to the nearest package.json or rename the file to ".mjs".\n` +
+          `Path: ${defaultsModulePathAbs}\n` +
+          `Original error: ${msg}`
+        );
+      }
+      if (/ERR_MODULE_NOT_FOUND/.test(msg)) {
+        throw new Error(
+          `[sync-doc-defaults] Failed to import ${rel(opts.repoRoot, defaultsModulePathAbs)} due to a missing nested import.\n` +
+          `If you're using ESM, ensure all relative imports include the ".js" extension (e.g., "./foo.js").\n` +
+          `Original error: ${msg}`
+        );
+      }
+      throw err;
+    }
   }
 
   if (ext === '.ts' || ext === '.tsx') {
@@ -97,6 +118,7 @@ export async function loadModuleSmart(
                 )}); falling back to TS via tsx.\n→ ${String(err?.message || err)}`
               );
             }
+            logger.dbg?.(`tsx register: ${rel(opts.repoRoot, tsx)}`);
             await import(pathToFileURL(tsx).href); // activate tsx loader
             const mod = await import(pathToFileURL(defaultsModulePathAbs).href);
             return mod?.default ?? mod;
@@ -108,11 +130,15 @@ export async function loadModuleSmart(
           }
           // mode=auto and no tsx → fall through to guidance below
         } else {
-          // mode=off → respect user choice; rethrow with context
+          // mode=off → respect user choice; rethrow with actionable context
           const msg = String(err?.message || err);
           throw new Error(
             `[sync-doc-defaults] Failed to import built JS ${rel(opts.repoRoot, built)} (ts mode=off).\n` +
-            `Fix your ESM imports (add ".js" to relative paths), or run with "--ts on" / SYNCDOCDEFAULTS_TS=on, or install "tsx".\n` +
+            `Likely fixes:\n` +
+            `  • If using ESM, add ".js" to all relative imports (e.g., "./util/logger.js").\n` +
+            `  • Or run with "--ts on" (or set SYNCDOCDEFAULTS_TS=on) to load TS via tsx.\n` +
+            `  • Or install tsx locally: pnpm add -D tsx\n` +
+            `Paths: rootDir=${opts.tsRootDir ?? '-'}  outDir=${opts.tsOutDir ?? '-'}  declarationDir=${opts.tsDeclarationDir ?? '-'}\n` +
             `Original error: ${msg}`
           );
         }
@@ -137,7 +163,10 @@ export async function loadModuleSmart(
     // 3) Helpful guidance (mode=off or tsx not available)
     throw new Error(
       `Could not load ${rel(opts.repoRoot, defaultsModulePathAbs)}.\n` +
-        `Either build your project (so the compiled JS exists), or install tsx (pnpm add -D tsx), or run with "--ts on".`
+      `Options:\n` +
+      `  • Build your project so compiled JS exists in ${rel(opts.repoRoot, opts.tsOutDir ?? '<outDir>')}.\n` +
+      `  • Or install tsx locally: pnpm add -D tsx\n` +
+      `  • Or run with "--ts on" (or set SYNCDOCDEFAULTS_TS=on) to force TS loading.\n`
     );
   }
 

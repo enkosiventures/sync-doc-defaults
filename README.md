@@ -284,6 +284,78 @@ If your defaults are TS and no compiled JS exists, `--ts auto` will use `tsx` if
 
 ---
 
+## Troubleshooting
+
+### “The JS module appears to be ESM but is being loaded without ESM context”
+You’ll see something like:
+```
+
+[sync-doc-defaults] The JS module appears to be ESM but is being loaded without ESM context.
+Add {"type":"module"} to the nearest package.json or rename the file to ".mjs".
+Path: <path>
+Original error: To load an ES module ... / Unexpected token 'export'
+
+```
+**Fixes**
+- Add `"type": "module"` to the nearest `package.json`, or
+- Rename the file to `.mjs`, or
+- Run your config/defaults from within a package that already has `"type": "module"`.
+
+---
+
+### “Failed to import built JS … (ts mode=off)”
+Typical when ESM imports inside your built JS are missing extensions:
+```
+
+[sync-doc-defaults] Failed to import built JS dist/src/constants.js (ts mode=off).
+Likely fixes:
+• If using ESM, add ".js" to all relative imports (e.g., "./util/logger.js").
+• Or run with "--ts on" (or set SYNCDOCDEFAULTS_TS=on) to load TS via tsx.
+• Or install tsx locally: pnpm add -D tsx
+Paths: rootDir=<rootDir>  outDir=<outDir>  declarationDir=<declarationDir>
+Original error: ERR_MODULE_NOT_FOUND ...
+
+```
+**Fixes**
+- Add `.js` to all **relative** ESM imports in your compiled JS (Node ESM requires the extension).
+- Or run with `--ts on` / `SYNCDOCDEFAULTS_TS=on` to load TypeScript via `tsx`.
+- Or `pnpm add -D tsx` and keep `--ts auto`.
+
+---
+
+### “Could not load <path> … build, tsx, or --ts on”
+```
+
+Could not load src/constants.ts.
+Options:
+• Build your project so compiled JS exists in dist/src.
+• Or install tsx locally: pnpm add -D tsx
+• Or run with "--ts on" (or set SYNCDOCDEFAULTS_TS=on) to force TS loading.
+
+```
+**Fixes**
+- Run your JS build so the compiled file exists in your `outDir`, or
+- Install `tsx` locally and keep `--ts auto`, or
+- Force TypeScript loading with `--ts on`.
+
+---
+
+### “SYNCDOCDEFAULTS_TS=on / --ts on … ‘tsx’ is not installed”
+```
+
+SYNCDOCDEFAULTS_TS=on / --ts on set but "tsx" is not installed in the target project.
+Install with: pnpm add -D tsx
+
+```
+**Fix**
+- Add `tsx` to **your project** (not just globally): `pnpm add -D tsx`.
+
+---
+
+> **Tip:** For path resolution breadcrumbs, pass `--debug-paths` (or set `SYNCDOCDEFAULTS_DEBUG_PATHS=1`).
+
+---
+
 ## License
 
 MIT © [Enkosi Ventures](https://enkosiventures.com).
