@@ -194,17 +194,17 @@ describe('injectDefaultsIntoDts (flat iface to avoid iterative-loop edge cases)'
       'ro-name': 'RO',
     };
 
-    const res = injectDefaultsIntoDts({
+    const result = injectDefaultsIntoDts({
       dtsText: FRIENDLY_IFACE,
       interfaceName: 'Flat',
       defaults,
       preferredTag: 'default',
     });
 
-    expect(res.missing).toEqual([]);
-    expect(res.updatedCount).toBeGreaterThan(0);
+    expect(result.missing).toEqual([]);
+    expect(result.updatedCount).toBeGreaterThan(0);
 
-    const t = res.updatedText;
+    const t = result.updatedText;
 
     // Accept either tag if implementation chooses to preserve or normalize
     expect(/@default\s+"Alice"|@defaultValue\s+"Alice"/.test(t)).toBe(true);
@@ -221,24 +221,24 @@ describe('injectDefaultsIntoDts (flat iface to avoid iterative-loop edge cases)'
   });
 
   it('supports preferredTag="defaultValue" for output', () => {
-    const res = injectDefaultsIntoDts({
+    const result = injectDefaultsIntoDts({
       dtsText: FRIENDLY_IFACE,
       interfaceName: 'Flat',
       defaults: { age: 7 },
       preferredTag: 'defaultValue',
     });
-    expect(res.updatedText).toMatch(/@defaultValue 7/);
+    expect(result.updatedText).toMatch(/@defaultValue 7/);
   });
 
   it('returns "missing" when defaults provide keys that are not props', () => {
-    const res = injectDefaultsIntoDts({
+    const result = injectDefaultsIntoDts({
       dtsText: FRIENDLY_IFACE,
       interfaceName: 'Flat',
       defaults: { nope: 1 },
       preferredTag: 'default',
     });
-    expect(res.updatedCount).toBe(0);
-    expect(res.missing).toEqual([{ interfaceName: 'Flat', prop: 'nope' }]);
+    expect(result.updatedCount).toBe(0);
+    expect(result.missing).toEqual([{ interfaceName: 'Flat', prop: 'nope' }]);
   });
 });
 

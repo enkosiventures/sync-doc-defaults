@@ -1,5 +1,5 @@
 import path from 'node:path';
-import type { Jsdoc, PreferredTag } from '../types.js';
+import type { JSDoc, PreferredTag } from '../types.js';
 
 
 /** Choose the indent for the new doc: prefer the property's indent.
@@ -99,7 +99,7 @@ export function extractLeadingJsdoc(
   return {};
 }
 
-export function parseJsdoc(raw: string | undefined): Jsdoc {
+export function parseJsdoc(raw: string | undefined): JSDoc {
   if (!raw) return { description: [], tags: [] };
 
   // Normalize // lines to a pseudo-block: we'll rewrite anyway.
@@ -239,6 +239,6 @@ export function formatDefaultLiteral(v: unknown): string {
 }
 
 /** Helper for debug messages. */
-export function rel(base: string, p: string) {
+export function getRelativePath(base: string, p: string) {
   return path.relative(base, p) || '.';
 }

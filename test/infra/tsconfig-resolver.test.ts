@@ -1,40 +1,32 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import fs from 'node:fs/promises';
 import path from 'node:path';
-import os from 'node:os';
-
 import {
   findNearestTsconfig,
   loadTsProject,
   inferDtsFromSrc,
   inferBuiltJsForTs
 } from '../../src/infra/tsconfig-resolver.js';
+import { createTempDirectory, write } from '../utils.js';
 
-let TMP = '';
-async function mkTmp() {
-  const dir = await fs.mkdtemp(path.join(os.tmpdir(), 'docdefaults-tsc-'));
-  return dir;
-}
-async function write(file: string, text: string) {
-  await fs.mkdir(path.dirname(file), { recursive: true });
-  await fs.writeFile(file, text, 'utf8');
-}
 
 describe('tsconfig-resolver', () => {
+  let tempDirPath: string;
+
   beforeEach(async () => {
-    TMP = await mkTmp();
+    tempDirPath = await createTempDirectory();
   });
 
   afterEach(async () => {
-    try { await fs.rm(TMP, { recursive: true, force: true }); } catch {}
-    TMP = '';
+    try { await fs.rm(tempDirPath, { recursive: true, force: true }); } catch {}
+    tempDirPath = '';
   });
 
   it('findNearestTsconfig finds the closest ancestor', async () => {
-    const rootTsconfig = path.join(TMP, 'tsconfig.json');
+    const rootTsconfig = path.join(tempDirPath, 'tsconfig.json');
     await write(rootTsconfig, JSON.stringify({ compilerOptions: { rootDir: 'src', outDir: 'dist' } }));
 
-    const deepDir = path.join(TMP, 'packages/app/src/feature');
+    const deepDir = path.join(tempDirPath, 'packages/app/src/feature');
     await fs.mkdir(deepDir, { recursive: true });
 
     const found = findNearestTsconfig(deepDir);
@@ -42,44 +34,44 @@ describe('tsconfig-resolver', () => {
   });
 
   it('loadTsProject parses rootDir/outDir/declarationDir correctly', async () => {
-    const tsc = path.join(TMP, 'tsconfig.json');
-    await write(tsc, JSON.stringify({
+    const tsconfigPath = path.join(tempDirPath, 'tsconfig.json');
+    await write(tsconfigPath, JSON.stringify({
       compilerOptions: { rootDir: 'src', outDir: 'out', declarationDir: 'types' }
     }));
 
-    const ts = loadTsProject(tsc);
-    expect(ts.projectRoot).toBe(path.dirname(tsc));
-    expect(ts.rootDir?.endsWith('/src') || ts.rootDir?.endsWith('\\src')).toBe(true);
-    expect(ts.outDir?.endsWith('/out') || ts.outDir?.endsWith('\\out')).toBe(true);
-    expect(ts.declarationDir?.endsWith('/types') || ts.declarationDir?.endsWith('\\types')).toBe(true);
+    const tsProject = loadTsProject(tsconfigPath);
+    expect(tsProject.projectRoot).toBe(path.dirname(tsconfigPath));
+    expect(tsProject.rootDir?.endsWith('/src') || tsProject.rootDir?.endsWith('\\src')).toBe(true);
+    expect(tsProject.outDir?.endsWith('/out') || tsProject.outDir?.endsWith('\\out')).toBe(true);
+    expect(tsProject.declarationDir?.endsWith('/types') || tsProject.declarationDir?.endsWith('\\types')).toBe(true);
   });
 
   it('inferDtsFromSrc maps src file -> emitted .d.ts under declarationDir/outDir', async () => {
-    const tsc = path.join(TMP, 'tsconfig.json');
-    await write(tsc, JSON.stringify({
+    const tsconfigPath = path.join(tempDirPath, 'tsconfig.json');
+    await write(tsconfigPath, JSON.stringify({
       compilerOptions: { rootDir: 'src', declarationDir: 'types' }
     }));
-    const ts = loadTsProject(tsc);
+    const tsProject = loadTsProject(tsconfigPath);
 
-    const srcAbs = path.join(TMP, 'src/foo/bar.ts');
+    const srcAbs = path.join(tempDirPath, 'src/foo/bar.ts');
     await write(srcAbs, 'export {}');
 
-    const dts = inferDtsFromSrc(ts, srcAbs);
-    expect(dts).toBe(path.join(TMP, 'types/foo/bar.d.ts'));
+    const dts = inferDtsFromSrc(tsProject, srcAbs);
+    expect(dts).toBe(path.join(tempDirPath, 'types/foo/bar.d.ts'));
   });
 
   it('inferBuiltJsForTs maps TS file -> built JS using outDir (or declarationDir)', async () => {
-    const tsRootDir = path.join(TMP, 'src');
-    const tsOutDir = path.join(TMP, 'dist');
-    const tsFileAbs = path.join(TMP, 'src/utils/constants.ts');
+    const tsRootDir = path.join(tempDirPath, 'src');
+    const tsOutDir = path.join(tempDirPath, 'dist');
+    const defaultsModulePathAbs = path.join(tempDirPath, 'src/utils/constants.ts');
 
     const built = inferBuiltJsForTs({
       tsRootDir,
       tsOutDir,
       tsDeclarationDir: undefined,
-      repoRoot: TMP,
-      tsFileAbs,
+      repoRoot: tempDirPath,
+      defaultsModulePathAbs,
     });
-    expect(built).toBe(path.join(TMP, 'dist/utils/constants.js'));
+    expect(built).toBe(path.join(tempDirPath, 'dist/utils/constants.js'));
   });
 });

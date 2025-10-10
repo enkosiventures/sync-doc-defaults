@@ -66,7 +66,7 @@ export interface Options extends CommonOptions {
 /**
  * Parsed JSDoc block for a property/interface member.
  */
-export type Jsdoc = {
+export type JSDoc = {
   /** Lines of human description above the tags (no leading `*`). */
   description: string[];
   /** Structured tags (`@tag...`) preserved in order of appearance. */
@@ -251,7 +251,7 @@ export interface AssertResult {
   targetResults: AssertTargetResult[];
 }
 
-export type DtsEditResult = {
+export type DTSEditResult = {
   updatedText: string;
   updatedCount: number;
   missing: Array<{ interfaceName: string; prop: string }>;

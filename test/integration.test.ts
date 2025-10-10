@@ -52,7 +52,7 @@ describe('ConsentOptions inject (bottom-up)', () => {
       storageKey: '__trackkit_consent__',
     };
 
-    const r = injectDefaultsIntoDts({
+    const result = injectDefaultsIntoDts({
       dtsText: before,
       interfaceName: 'ConsentOptions',
       defaults,
@@ -60,21 +60,21 @@ describe('ConsentOptions inject (bottom-up)', () => {
     });
 
     // No torn identifiers / stray blocks
-    expect(r.updatedText).toMatch(/initialStatus\?\:\s*ConsentStatus;/);
-    expect(r.updatedText).toMatch(/requireExplicit\?\:\s*boolean;/);
-    expect(r.updatedText).toMatch(/allowEssentialOnDenied\?\:\s*boolean;/);
-    expect(r.updatedText).toMatch(/disablePersistence\?\:\s*boolean;/);
-    expect(r.updatedText).toMatch(/storageKey\?\:\s*string;/);
+    expect(result.updatedText).toMatch(/initialStatus\?\:\s*ConsentStatus;/);
+    expect(result.updatedText).toMatch(/requireExplicit\?\:\s*boolean;/);
+    expect(result.updatedText).toMatch(/allowEssentialOnDenied\?\:\s*boolean;/);
+    expect(result.updatedText).toMatch(/disablePersistence\?\:\s*boolean;/);
+    expect(result.updatedText).toMatch(/storageKey\?\:\s*string;/);
 
     // Canonical @default lines exist
-    expect(r.updatedText).toMatch(/@default "pending"/);
-    expect(r.updatedText).toMatch(/@default true/);
-    expect(r.updatedText).toMatch(/@default false/);
-    expect(r.updatedText).toMatch(/@default "__trackkit_consent__"/);
+    expect(result.updatedText).toMatch(/@default "pending"/);
+    expect(result.updatedText).toMatch(/@default true/);
+    expect(result.updatedText).toMatch(/@default false/);
+    expect(result.updatedText).toMatch(/@default "__trackkit_consent__"/);
 
     // And assertion passes
     const a = assertDefaultsInDts({
-      dtsText: r.updatedText,
+      dtsText: result.updatedText,
       interfaceName: 'ConsentOptions',
       defaults,
     });
@@ -89,7 +89,7 @@ describe('ConsentOptions inject (bottom-up)', () => {
       disablePersistence: false,
       storageKey: '__trackkit_consent__',
     };
-    const r = injectDefaultsIntoDts({
+    const result = injectDefaultsIntoDts({
       dtsText: before,
       interfaceName: 'ConsentOptions',
       defaults,
@@ -97,21 +97,21 @@ describe('ConsentOptions inject (bottom-up)', () => {
     });
     // doc lines should begin with the same 4-space indent before the '*' lines
     // We also expect a space after '*' (the style in the original)
-    r.updatedText.split(/\n/).slice(
-      r.updatedText.indexOf('initialStatus') // quick segment check
+    result.updatedText.split(/\n/).slice(
+      result.updatedText.indexOf('initialStatus') // quick segment check
     );
-    expect(r.updatedText).toMatch(/\n {4}\/\*\*\n {4} \* /);        // opening + a starred line with ' * '
-    expect(r.updatedText).toMatch(/@default "pending"/);
-    expect(r.updatedText).toMatch(/\n {4} \* @default true\n/);     // another field block carries same style
+    expect(result.updatedText).toMatch(/\n {4}\/\*\*\n {4} \* /);        // opening + a starred line with ' * '
+    expect(result.updatedText).toMatch(/@default "pending"/);
+    expect(result.updatedText).toMatch(/\n {4} \* @default true\n/);     // another field block carries same style
 
     // find the indent of the requireExplicit property
     const indentRE = /\n([ \t]+)requireExplicit\?\s*:\s*boolean;/;
-    const m = r.updatedText.match(indentRE);
+    const m = result.updatedText.match(indentRE);
     const ind = m ? m[1] : '';
     expect(ind).not.toBe('');
 
-    expect(r.updatedText).toContain(`\n${ind}/**`);
-    expect(r.updatedText).toContain(`\n${ind} * @default true`);
+    expect(result.updatedText).toContain(`\n${ind}/**`);
+    expect(result.updatedText).toContain(`\n${ind} * @default true`);
   });
 
   it('aligns doc indent to the property indent but preserves star spacing', () => {
@@ -150,27 +150,27 @@ describe('ConsentOptions inject (bottom-up)', () => {
       'baz-qux'?: number; 
     }`;
     const defaults = { 'foo-bar': 'test', 'baz-qux': 42 };
-    const r = injectDefaultsIntoDts({
+    const result = injectDefaultsIntoDts({
       dtsText: dts,
       interfaceName: 'X',
       defaults,
       preferredTag: 'default',
     });
-    expect(r.updatedText).toContain('@default "test"');
-    expect(r.updatedText).toContain('@default 42');
-    expect(r.updatedCount).toBe(2);
+    expect(result.updatedText).toContain('@default "test"');
+    expect(result.updatedText).toContain('@default 42');
+    expect(result.updatedCount).toBe(2);
   });
 
   it('handles readonly properties', () => {
     const dts = `interface X { readonly foo?: string; }`;
     const defaults = { foo: 'bar' };
-    const r = injectDefaultsIntoDts({
+    const result = injectDefaultsIntoDts({
       dtsText: dts,
       interfaceName: 'X',
       defaults,
       preferredTag: 'default',
     });
-    expect(r.updatedText).toContain('@default "bar"');
+    expect(result.updatedText).toContain('@default "bar"');
   });
 
   it('escapes special characters in string defaults', () => {
@@ -184,14 +184,14 @@ describe('ConsentOptions inject (bottom-up)', () => {
       tab?: string;
       quote?: string;
     }`;
-    const r = injectDefaultsIntoDts({
+    const result = injectDefaultsIntoDts({
       dtsText: dts,
       interfaceName: 'X',
       defaults,
       preferredTag: 'default',
     });
-    expect(r.updatedText).toContain('@default "line1\\nline2"');
-    expect(r.updatedText).toContain('@default "col1\\tcol2"');
-    expect(r.updatedText).toContain('@default "\\"quoted\\""');
+    expect(result.updatedText).toContain('@default "line1\\nline2"');
+    expect(result.updatedText).toContain('@default "col1\\tcol2"');
+    expect(result.updatedText).toContain('@default "\\"quoted\\""');
   });
 });

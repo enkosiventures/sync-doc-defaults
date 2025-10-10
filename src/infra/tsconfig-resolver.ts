@@ -50,13 +50,13 @@ export function inferBuiltJsForTs(args: {
   tsOutDir?: string;
   tsDeclarationDir?: string;
   repoRoot: string;
-  tsFileAbs: string;
+  defaultsModulePathAbs: string;
 }): string | undefined {
-  const { tsRootDir, tsOutDir, tsDeclarationDir, tsFileAbs } = args;
+  const { tsRootDir, tsOutDir, tsDeclarationDir, defaultsModulePathAbs } = args;
   const outBase = tsOutDir ?? tsDeclarationDir;
   const root = tsRootDir;
   if (!outBase || !root) return undefined;
-  const relFromRoot = path.relative(root, tsFileAbs);
+  const relFromRoot = path.relative(root, defaultsModulePathAbs);
   if (relFromRoot.startsWith('..')) return undefined;
   return path.resolve(outBase, replaceExt(relFromRoot, '.js'));
 }

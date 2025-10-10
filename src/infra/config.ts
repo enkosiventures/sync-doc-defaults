@@ -21,28 +21,28 @@ export async function discoverConfig(startDir: string): Promise<string | undefin
 
 export async function loadConfig(file: string): Promise<DocDefaultsConfig> {
   const ext = path.extname(file).toLowerCase();
-  let cfg: any;
+  let config: any;
   if (ext === '.json') {
-    cfg = JSON.parse(await fs.promises.readFile(file, 'utf8'));
+    config = JSON.parse(await fs.promises.readFile(file, 'utf8'));
   } else {
     const mod = await import(pathToFileURL(file).href);
-    cfg = mod?.default ?? mod;
+    config = mod?.default ?? mod;
   }
-  validateConfig(cfg, file);
-  return cfg;
+  validateConfig(config, file);
+  return config;
 }
 
-function validateConfig(cfg: any, fromPath: string): asserts cfg is DocDefaultsConfig {
-  if (!cfg || typeof cfg !== 'object') throw new Error(`Invalid config in ${fromPath}: not an object`);
-  if (typeof cfg.defaults !== 'string') throw new Error(`Invalid config in ${fromPath}: "defaults" must be a string`);
-  if (!Array.isArray(cfg.targets)) throw new Error(`Invalid config in ${fromPath}: "targets" must be an array`);
-  for (const t of cfg.targets) {
-    if (!t || typeof t !== 'object') throw new Error(`Invalid target in ${fromPath}: item is not an object`);
-    if (t.name && typeof t.name !== 'string') throw new Error(`Invalid target in ${fromPath}: "name" must be a string`);
-    if (typeof t.types !== 'string') throw new Error(`Invalid target "${t.name}": "types" must be a string`);
-    if (t.dts && typeof t.dts !== 'string') throw new Error(`Invalid target "${t.name}": "dts" must be a string if provided`);
-    if (typeof t.interface !== 'string') throw new Error(`Invalid target "${t.name}": "interface" must be a string`);
-    if (typeof t.member !== 'string') throw new Error(`Invalid target "${t.name}": "member" must be a string`);
+function validateConfig(config: any, fromPath: string): asserts config is DocDefaultsConfig {
+  if (!config || typeof config !== 'object') throw new Error(`Invalid config in ${fromPath}: not an object`);
+  if (typeof config.defaults !== 'string') throw new Error(`Invalid config in ${fromPath}: "defaults" must be a string`);
+  if (!Array.isArray(config.targets)) throw new Error(`Invalid config in ${fromPath}: "targets" must be an array`);
+  for (const target of config.targets) {
+    if (!target || typeof target !== 'object') throw new Error(`Invalid target in ${fromPath}: item is not an object`);
+    if (target.name && typeof target.name !== 'string') throw new Error(`Invalid target in ${fromPath}: "name" must be a string`);
+    if (typeof target.types !== 'string') throw new Error(`Invalid target "${target.name}": "types" must be a string`);
+    if (target.dts && typeof target.dts !== 'string') throw new Error(`Invalid target "${target.name}": "dts" must be a string if provided`);
+    if (typeof target.interface !== 'string') throw new Error(`Invalid target "${target.name}": "interface" must be a string`);
+    if (typeof target.member !== 'string') throw new Error(`Invalid target "${target.name}": "member" must be a string`);
   }
 }
 

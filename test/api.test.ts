@@ -1,34 +1,37 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import fs from 'node:fs/promises';
 import path from 'node:path';
-import os from 'node:os';
 import { inject, assert } from '../src/api.js';
 import type { DocDefaultsConfig } from '../src/types.js';
+import { createTempDirectory } from './utils.js';
 
 
 const FIX_DIR = path.resolve(__dirname, 'fixtures');
 
 async function makeTempCopy() {
-  const tmp = await fs.mkdtemp(path.join(os.tmpdir(), 'docdefaults-'));
-  const constants = path.join(tmp, 'constants.js');
-  const dts = path.join(tmp, 'types.d.ts');
+  const tempDirPath = await createTempDirectory();
+  const constants = path.join(tempDirPath, 'constants.js');
+  const dts = path.join(tempDirPath, 'types.d.ts');
   await fs.copyFile(path.join(FIX_DIR, 'constants.js'), constants);
   await fs.copyFile(path.join(FIX_DIR, 'types.d.ts'), dts);
-  return { tmp, constants, dts };
+  return { tempDirPath, constants, dts };
 }
 
 describe('docdefaults', () => {
-  let tmp: string, constants: string, dts: string, config: DocDefaultsConfig;
+  let tempDirPath: string;
+  let dts: string;
+  let constants: string;
+  let config: DocDefaultsConfig;
 
   beforeEach(async () => {
-    ({ tmp, constants, dts } = await makeTempCopy());
+    ({ tempDirPath, constants, dts } = await makeTempCopy());
     config = {
-      defaults: path.relative(tmp, constants),
+      defaults: path.relative(tempDirPath, constants),
       targets: [
         {
           name: 'Example',
           types: 'src/options.ts', // dummy (not used in inference here)
-          dts: path.relative(tmp, dts),
+          dts: path.relative(tempDirPath, dts),
           interface: 'ExampleOptions',
           member: 'DEFAULTS',
         },
@@ -72,20 +75,20 @@ describe('docdefaults', () => {
         member: 'DEFAULTS',
       }],
     };
-    const cfgFile = path.join(tmp, 'evil.config.json');
-    await fs.writeFile(cfgFile, JSON.stringify(maliciousConfig), 'utf8');
-    await expect(inject(cfgFile, { repoRoot: tmp })).rejects.toThrow(/escapes project root/);
+    const configFile = path.join(tempDirPath, 'evil.config.json');
+    await fs.writeFile(configFile, JSON.stringify(maliciousConfig), 'utf8');
+    await expect(inject(configFile, { repoRoot: tempDirPath })).rejects.toThrow(/escapes project root/);
   });
 
   async function injectConfig() {
-    const cfgFile = path.join(tmp, 'docdefaults.config.json');
-    await fs.writeFile(cfgFile, JSON.stringify(config), 'utf8');
-    await inject(cfgFile, { repoRoot: tmp });
+    const configFile = path.join(tempDirPath, 'docdefaults.config.json');
+    await fs.writeFile(configFile, JSON.stringify(config), 'utf8');
+    await inject(configFile, { repoRoot: tempDirPath });
   }
 
   async function assertConfig() {
-    const cfgFile = path.join(tmp, 'docdefaults.config.json');
-    await fs.writeFile(cfgFile, JSON.stringify(config), 'utf8');
-    return assert(cfgFile, { repoRoot: tmp });
+    const configFile = path.join(tempDirPath, 'docdefaults.config.json');
+    await fs.writeFile(configFile, JSON.stringify(config), 'utf8');
+    return assert(configFile, { repoRoot: tempDirPath });
   }
 });

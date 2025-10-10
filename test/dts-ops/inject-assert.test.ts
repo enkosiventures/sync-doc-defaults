@@ -32,35 +32,35 @@ export interface NoDocs {
 `;
 
   it('adds @default into preseeded blocks; keeps single blank line; idempotent', () => {
-    const res = injectDefaultsIntoDts({
+    const result = injectDefaultsIntoDts({
       dtsText: IFACE_PRESEEDED,
       interfaceName: 'NoDocs',
       defaults: { foo: 'X', bar: 1 },
       preferredTag: 'default',
     });
 
-    expect(res.missing).toEqual([]);
-    expect(res.updatedCount).toBe(2);
+    expect(result.missing).toEqual([]);
+    expect(result.updatedCount).toBe(2);
 
-    const t = res.updatedText;
+    const text = result.updatedText;
 
     // foo has a single @default and no duplicates
-    const preFoo = t.slice(0, t.indexOf('foo?: string;'));
+    const preFoo = text.slice(0, text.indexOf('foo?: string;'));
     expect(preFoo.match(/@default "X"/g)?.length).toBe(1);
 
     // bar has a single @default and no duplicates
-    const preBar = t.slice(0, t.indexOf('bar?: number;'));
+    const preBar = text.slice(0, text.indexOf('bar?: number;'));
     expect(preBar.match(/@default 1/g)?.length).toBe(1);
 
     // Second pass does nothing
-    const res2 = injectDefaultsIntoDts({
-      dtsText: t,
+    const result2 = injectDefaultsIntoDts({
+      dtsText: text,
       interfaceName: 'NoDocs',
       defaults: { foo: 'X', bar: 1 },
       preferredTag: 'default',
     });
-    expect(res2.updatedCount).toBe(0);
-    expect(res2.updatedText).toBe(t);
+    expect(result2.updatedCount).toBe(0);
+    expect(result2.updatedText).toBe(text);
   });
 });
 
@@ -101,7 +101,7 @@ export interface Mixed {
 `;
 
   it('normalizes preferred tag, preserves off-by-one indent, handles CRLF and quoted/readonly', () => {
-    const res = injectDefaultsIntoDts({
+    const result = injectDefaultsIntoDts({
       dtsText: IFACE_MIXED_PRESEEDED,
       interfaceName: 'Mixed',
       defaults: {
@@ -116,8 +116,6 @@ export interface Mixed {
       preferredTag: 'default',
     });
 
-    const t = res.updatedText;
-
     // Helper: get the JSDoc block right before a given prop signature
     const docBlockFor = (text: string, propSig: string) => {
       const sigIdx = text.indexOf(propSig);
@@ -128,32 +126,34 @@ export interface Mixed {
       return text.slice(start, sigIdx);
     };
 
+    const text = result.updatedText;
+
     // charlie normalized to @default (not @defaultValue)
-    const charlieDoc = docBlockFor(t, 'charlie?: string;');
+    const charlieDoc = docBlockFor(text, 'charlie?: string;');
     expect(charlieDoc).toMatch(/@default\s+"legacy"/);
     expect(charlieDoc).not.toMatch(/@defaultValue/);
 
     // delta unchanged (no duplication of the preferred tag)
-    const deltaDoc = docBlockFor(t, 'delta?: boolean;');
+    const deltaDoc = docBlockFor(text, 'delta?: boolean;');
     expect((deltaDoc.match(/@default\s+true/g) ?? []).length).toBe(1);
 
     // CRLF preserved around bravo doc; tag present (don't assert exact whitespace)
-    const bravoDoc = docBlockFor(t, 'bravo?: number;');
+    const bravoDoc = docBlockFor(text, 'bravo?: number;');
     expect(bravoDoc).toMatch(/@default\s+42/);
 
     // no-block echo got a new block with correct indent (4 spaces)
-    const echoDoc = docBlockFor(t, 'echo?: string;');
+    const echoDoc = docBlockFor(text, 'echo?: string;');
     expect(echoDoc).toMatch(/@default "new"/);
 
     // quoted + readonly names supported
-    const withDashDoc = docBlockFor(t, '"with-dash"?: string;');
+    const withDashDoc = docBlockFor(text, '"with-dash"?: string;');
     expect(withDashDoc).toMatch(/@default\s+"w"/);
 
-    const roDoc = docBlockFor(t, "readonly 'ro-name'?: string;");
+    const roDoc = docBlockFor(text, "readonly 'ro-name'?: string;");
     expect(roDoc).toMatch(/@default\s+"r"/);
 
     // Updated count should reflect edits (delta not counted if already correct)
-    expect(res.updatedCount).toBeGreaterThan(0);
+    expect(result.updatedCount).toBeGreaterThan(0);
   });
 });
 
@@ -247,7 +247,7 @@ describe('tag normalization when both tags present', () => {
       foo?: string;
     }`;
     
-    const res = injectDefaultsIntoDts({
+    const result = injectDefaultsIntoDts({
       dtsText: dts,
       interfaceName: 'X',
       defaults: { foo: 'correct' },
@@ -255,11 +255,11 @@ describe('tag normalization when both tags present', () => {
     });
     
     // Should have exactly one @default with correct value
-    const matches = res.updatedText.match(/@default "correct"/g);
+    const matches = result.updatedText.match(/@default "correct"/g);
     expect(matches).toHaveLength(1);
     
     // Should not have @defaultValue anymore
-    expect(res.updatedText).not.toContain('@defaultValue');
+    expect(result.updatedText).not.toContain('@defaultValue');
   });
 });
 
@@ -279,21 +279,21 @@ describe('special characters in string defaults', () => {
       backslash: 'path\\to\\file',
     };
     
-    const res = injectDefaultsIntoDts({
+    const result = injectDefaultsIntoDts({
       dtsText: dts,
       interfaceName: 'X',
       defaults,
       preferredTag: 'default',
     });
     
-    expect(res.updatedText).toContain('@default "line1\\nline2"');
-    expect(res.updatedText).toContain('@default "col1\\tcol2"');
-    expect(res.updatedText).toContain('@default "\\"quoted\\""');
-    expect(res.updatedText).toContain('@default "path\\\\to\\\\file"');
+    expect(result.updatedText).toContain('@default "line1\\nline2"');
+    expect(result.updatedText).toContain('@default "col1\\tcol2"');
+    expect(result.updatedText).toContain('@default "\\"quoted\\""');
+    expect(result.updatedText).toContain('@default "path\\\\to\\\\file"');
     
     // Verify assert can read them back correctly
     const assertion = assertDefaultsInDts({
-      dtsText: res.updatedText,
+      dtsText: result.updatedText,
       interfaceName: 'X',
       defaults,
     });

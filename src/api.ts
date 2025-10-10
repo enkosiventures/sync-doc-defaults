@@ -27,15 +27,15 @@ import { CONFIG_FILENAME_CANDIDATES } from './constants.js';
 export async function inject(configPath?: string, opts: RunOptions = {}) {
   const options = resolveOptions(opts);
   const logger = new Logger(options.quiet, options.debugPaths);
-  const { cfg, repoRoot } = await loadConfigResolved(configPath, options);
-  const tag: PreferredTag = opts.tag ?? cfg.tag ?? 'default';
+  const { config, repoRoot } = await loadConfigResolved(configPath, options);
+  const tag: PreferredTag = opts.tag ?? config.tag ?? 'default';
 
   // Resolve TypeScript paths (rootDir/outDir/declarationDir)
-  const tsconfigPathAbs = await resolveTsconfigPathAbs(repoRoot, cfg.tsconfig);
+  const tsconfigPathAbs = await resolveTsconfigPathAbs(repoRoot, config.tsconfig);
   const ts = loadTsProject(tsconfigPathAbs);
 
   // Load defaults module (built-js preferred, TS fallback via tsx)
-  const defaultsModulePathAbs = validatePathWithinRoot(repoRoot, cfg.defaults, 'defaults');
+  const defaultsModulePathAbs = validatePathWithinRoot(repoRoot, config.defaults, 'defaults');
   const defaultsModule = await loadModuleSmart(defaultsModulePathAbs, {
     repoRoot,
     tsRootDir: ts.rootDir,
@@ -58,23 +58,23 @@ export async function inject(configPath?: string, opts: RunOptions = {}) {
   }
 
   let totalUpdates = 0;
-  for (const t of cfg.targets) {
-    const name = t.name ?? t.interface;
+  for (const target of config.targets) {
+    const name = target.name ?? target.interface;
 
-    const srcAbs = validatePathWithinRoot(repoRoot, t.types, 'types');
+    const srcAbs = validatePathWithinRoot(repoRoot, target.types, 'types');
     const dtsPathAbs = await resolveDtsPathAbs({
       repoRoot,
       tsRootDir: ts.rootDir,
       tsDeclarationDir: ts.declarationDir,
-      typesPath: t.types,
-      dtsPath: t.dts,
+      typesPath: target.types,
+      dtsPath: target.dts,
     });
 
     // defaults object for this target (flat { [prop]: value })
-    const defaultsObj = selectDefaults(defaultsModule, t.member);
+    const defaultsObj = selectDefaults(defaultsModule, target.member);
     if (!defaultsObj || typeof defaultsObj !== 'object') {
       throw new Error(
-        `[sync-doc-defaults] ${name}: defaults symbol "${t.member}" not found or not an object in ${rel(repoRoot, defaultsModulePathAbs)}`
+        `[sync-doc-defaults] ${name}: defaults symbol "${target.member}" not found or not an object in ${getRelativePath(repoRoot, defaultsModulePathAbs)}`
       );
     }
 
@@ -83,28 +83,28 @@ export async function inject(configPath?: string, opts: RunOptions = {}) {
     try {
       dtsText = await fs.readFile(dtsPathAbs, 'utf8');
     } catch {
-      throw new Error(`[sync-doc-defaults] ${name}: .d.ts not found at ${rel(repoRoot, dtsPathAbs)}`);
+      throw new Error(`[sync-doc-defaults] ${name}: .d.ts not found at ${getRelativePath(repoRoot, dtsPathAbs)}`);
     }
 
     // Ensure the requested interface exists; tests expect rejection when missing
-    const props = listInterfaceProps(dtsText, t.interface);
+    const props = listInterfaceProps(dtsText, target.interface);
     if (!props || props.length === 0) {
       throw new Error(
-        `[sync-doc-defaults] ${name}: Interface "${t.interface}" not found in ${rel(repoRoot, dtsPathAbs)}`
+        `[sync-doc-defaults] ${name}: Interface "${target.interface}" not found in ${getRelativePath(repoRoot, dtsPathAbs)}`
       );
     }
 
     // inject
     const { updatedText, updatedCount, missing } = injectDefaultsIntoDts({
       dtsText,
-      interfaceName: t.interface,
+      interfaceName: target.interface,
       defaults: defaultsObj as Record<string, unknown>,
       preferredTag: tag,
     });
 
     if (missing.length) {
       for (const m of missing) {
-        logger.warn(`${name}: property "${m.prop}" not found in interface ${t.interface}`);
+        logger.warn(`${name}: property "${m.prop}" not found in interface ${target.interface}`);
       }
     }
 
@@ -114,17 +114,17 @@ export async function inject(configPath?: string, opts: RunOptions = {}) {
         await fs.writeFile(dtsPathAbs, updatedText, 'utf8');
       } else {
         console.log(`--- [sync-doc-defaults] ${name}: updated .d.ts (dryRun) ---\n`);
-        console.log(extractDeclarationBlock(updatedText, t.interface) ?? '(not found)');
+        console.log(extractDeclarationBlock(updatedText, target.interface) ?? '(not found)');
         console.log(`\n--- end of ${name} ---\n`);
       }
-      logger.log(`${name}: injected ${updatedCount} @${tag} update(s) → ${rel(repoRoot, dtsPathAbs)}`);
+      logger.log(`${name}: injected ${updatedCount} @${tag} update(s) → ${getRelativePath(repoRoot, dtsPathAbs)}`);
       
     } else {
       logger.log(`${name}: up-to-date`);
     }
 
     logger.dbg(
-      `target="${name}" src=${rel(repoRoot, srcAbs)} dts=${rel(repoRoot, dtsPathAbs)} tsconfig=${tsconfigPathAbs}`
+      `target="${name}" src=${getRelativePath(repoRoot, srcAbs)} dts=${getRelativePath(repoRoot, dtsPathAbs)} tsconfig=${tsconfigPathAbs}`
     );
   }
 
@@ -138,11 +138,11 @@ export async function inject(configPath?: string, opts: RunOptions = {}) {
 export async function assert(configPath?: string, opts: RunOptions = {}) {
   const options = resolveOptions(opts);
   const logger = new Logger(options.quiet, options.debugPaths);
-  const { cfg, repoRoot } = await loadConfigResolved(configPath, options);
-  const tsconfigPathAbs = await resolveTsconfigPathAbs(repoRoot, cfg.tsconfig);
+  const { config, repoRoot } = await loadConfigResolved(configPath, options);
+  const tsconfigPathAbs = await resolveTsconfigPathAbs(repoRoot, config.tsconfig);
   const ts = loadTsProject(tsconfigPathAbs);
 
-  const defaultsModulePathAbs = validatePathWithinRoot(repoRoot, cfg.defaults, 'defaults');
+  const defaultsModulePathAbs = validatePathWithinRoot(repoRoot, config.defaults, 'defaults');
   const defaultsModule = await loadModuleSmart(defaultsModulePathAbs, {
     repoRoot,
     tsRootDir: ts.rootDir,
@@ -154,20 +154,20 @@ export async function assert(configPath?: string, opts: RunOptions = {}) {
   });
 
   let anyMismatch = false;
-  for (const t of cfg.targets) {
-    const name = t.name ?? t.interface;
+  for (const target of config.targets) {
+    const name = target.name ?? target.interface;
     const dtsPathAbs = await resolveDtsPathAbs({
       repoRoot,
       tsRootDir: ts.rootDir,
       tsDeclarationDir: ts.declarationDir,
-      typesPath: t.types,
-      dtsPath: t.dts,
+      typesPath: target.types,
+      dtsPath: target.dts,
     });
 
-    const defaultsObj = selectDefaults(defaultsModule, t.member);
+    const defaultsObj = selectDefaults(defaultsModule, target.member);
     if (!defaultsObj || typeof defaultsObj !== 'object') {
       throw new Error(
-        `[sync-doc-defaults] ${name}: defaults symbol "${t.member}" not found or not an object in ${rel(repoRoot, defaultsModulePathAbs)}`
+        `[sync-doc-defaults] ${name}: defaults symbol "${target.member}" not found or not an object in ${getRelativePath(repoRoot, defaultsModulePathAbs)}`
       );
     }
 
@@ -175,19 +175,19 @@ export async function assert(configPath?: string, opts: RunOptions = {}) {
     try {
       dtsText = await fs.readFile(dtsPathAbs, 'utf8');
     } catch {
-      throw new Error(`[sync-doc-defaults] ${name}: .d.ts not found at ${rel(repoRoot, dtsPathAbs)}`);
+      throw new Error(`[sync-doc-defaults] ${name}: .d.ts not found at ${getRelativePath(repoRoot, dtsPathAbs)}`);
     }
 
     const { ok, mismatches } = assertDefaultsInDts({
       dtsText,
-      interfaceName: t.interface,
+      interfaceName: target.interface,
       defaults: defaultsObj as Record<string, unknown>,
     });
 
     if (!ok) {
       anyMismatch = true;
       for (const m of mismatches) {
-        const place = `${name}: ${t.interface}.${m.prop}`;
+        const place = `${name}: ${target.interface}.${m.prop}`;
         const msg = m.found
           ? `expected @default ${m.expected} (found ${m.found})`
           : `expected @default ${m.expected} (missing)`;
@@ -219,14 +219,14 @@ function validatePathWithinRoot(rootDir: string, targetPath: string, label: stri
 async function loadConfigResolved(configPath: string | undefined, opts: Options) {
   const logger = new Logger(opts.quiet, opts.debugPaths);
   const repoRoot = opts.repoRoot;
-  const cfgPath = await findConfigPath(repoRoot, configPath);
-  if (!cfgPath) {
+  const configPathAbs = await findConfigPath(repoRoot, configPath);
+  if (!configPathAbs) {
     throw new Error(
       `[sync-doc-defaults] config file not found. Looked for docdefaults.config.(mjs|cjs|js|ts|json) from ${repoRoot}`
     );
   }
-  const cfg = await importConfig(
-    cfgPath,
+  const config = await importConfig(
+    configPathAbs,
     {
       repoRoot,
       tsMode: opts.tsMode,
@@ -234,33 +234,33 @@ async function loadConfigResolved(configPath: string | undefined, opts: Options)
       debug: opts.debugPaths,
     }
   );
-  validateConfig(cfg, cfgPath);
-  logger.dbg(`configPath=${cfgPath}`);
+  validateConfig(config, configPathAbs);
+  logger.dbg(`configPath=${configPathAbs}`);
   logger.dbg(`repoRoot=${repoRoot}`);
-  logger.dbg(`defaultsModulePathAbs=${path.resolve(repoRoot, cfg.defaults)}`);
-  return { cfg, repoRoot };
+  logger.dbg(`defaultsModulePathAbs=${path.resolve(repoRoot, config.defaults)}`);
+  return { config, repoRoot };
 }
 
-function validateConfig(raw: any, cfgPath: string): asserts raw is DocDefaultsConfig {
-  if (!raw || typeof raw !== 'object') throw new Error(`[sync-doc-defaults] invalid config at ${cfgPath}`);
-  const cfg = (raw.default ?? raw) as DocDefaultsConfig;
-  if (!cfg || typeof cfg !== 'object') throw new Error(`[sync-doc-defaults] invalid config export at ${cfgPath}`);
-  if (!cfg.defaults || !cfg.targets) {
-    // throw new Error(`[sync-doc-defaults] config must include "defaults" and "targets" at ${cfgPath}`);
-    throw new Error(`[sync-doc-defaults] Could not load config at ${cfgPath}: must include "defaults" and "targets"`);
+function validateConfig(raw: any, configPath: string): asserts raw is DocDefaultsConfig {
+  if (!raw || typeof raw !== 'object') throw new Error(`[sync-doc-defaults] invalid config at ${configPath}`);
+  const config = (raw.default ?? raw) as DocDefaultsConfig;
+  if (!config || typeof config !== 'object') throw new Error(`[sync-doc-defaults] invalid config export at ${configPath}`);
+  if (!config.defaults || !config.targets) {
+    // throw new Error(`[sync-doc-defaults] config must include "defaults" and "targets" at ${configPath}`);
+    throw new Error(`[sync-doc-defaults] Could not load config at ${configPath}: must include "defaults" and "targets"`);
   }
   // lightweight shape check:
-  if (!Array.isArray(cfg.targets)) throw new Error(`[sync-doc-defaults] "targets" must be an array`);
-  for (const t of cfg.targets) {
-    if (!t || typeof t !== 'object') throw new Error(`[sync-doc-defaults] each target must be an object`);
-    if (!t.types || !t.interface || !t.member) {
+  if (!Array.isArray(config.targets)) throw new Error(`[sync-doc-defaults] "targets" must be an array`);
+  for (const target of config.targets) {
+    if (!target || typeof target !== 'object') throw new Error(`[sync-doc-defaults] each target must be an object`);
+    if (!target.types || !target.interface || !target.member) {
       throw new Error(
         `[sync-doc-defaults] target missing required fields (need "types", "interface", "member")`
       );
     }
   }
   // ok
-  Object.assign(raw, { default: cfg }); // keep defaulted
+  Object.assign(raw, { default: config }); // keep defaulted
 }
 
 async function resolveTsconfigPathAbs(repoRoot: string, tsconfigPath?: string) {
@@ -324,7 +324,7 @@ function selectDefaults(mod: any, pathExpr: string): unknown {
   return cur;
 }
 
-function rel(base: string, p: string) {
+function getRelativePath(base: string, p: string) {
   return path.relative(base, p) || '.';
 }
 
@@ -350,15 +350,15 @@ async function findConfigPath(startDir: string, explicit?: string) {
   return undefined;
 }
 
-async function importConfig(cfgAbs: string, opts: { repoRoot: string; tsMode?: TsMode; quiet?: boolean; debug?: boolean }) {
-  const ext = path.extname(cfgAbs).toLowerCase();
+async function importConfig(configPathAbs: string, opts: { repoRoot: string; tsMode?: TsMode; quiet?: boolean; debug?: boolean }) {
+  const ext = path.extname(configPathAbs).toLowerCase();
   if (ext === '.json') {
-    const raw = await fs.readFile(cfgAbs, 'utf8');
+    const raw = await fs.readFile(configPathAbs, 'utf8');
     return JSON.parse(raw);
   }
   if (ext === '.ts' || ext === '.tsx') {
     // import .ts config via the same smart loader (tsx if available)
-    const mod = await loadModuleSmart(cfgAbs, {
+    const mod = await loadModuleSmart(configPathAbs, {
       repoRoot: opts.repoRoot,
       tsMode: opts.tsMode ?? 'auto',
       quiet: opts.quiet,
@@ -366,6 +366,6 @@ async function importConfig(cfgAbs: string, opts: { repoRoot: string; tsMode?: T
     });
     return mod.default ?? mod;
   }
-  const mod = await import(pathToFileURL(cfgAbs).href);
+  const mod = await import(pathToFileURL(configPathAbs).href);
   return mod.default ?? mod;
 }
