@@ -111,12 +111,9 @@ describe('source-loader', () => {
       await fs.mkdir(path.dirname(built), { recursive: true });
       await fs.writeFile(
         built,
-        `import './util/logger'; export const DEFAULTS = { foo: "bar" };`,
+        `import './util/does-not-exist.js'; export const DEFAULTS = { foo: "bar" };`,
         'utf8'
       );
-      await fs.mkdir(path.join(TMP, 'dist', 'src', 'util'), { recursive: true });
-      // Intentionally DO include the file, but Node ESM will reject because the import has no .js suffix:
-      await fs.writeFile(path.join(TMP, 'dist', 'src', 'util', 'logger.js'), 'export {};', 'utf8');
 
       const canTsx = resolveTsxFrom(TMP);
       if (!canTsx) {

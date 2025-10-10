@@ -8,16 +8,14 @@ import { Logger } from './log.js';
 
 
 export function resolveTsxFrom(repoRoot: string): string | undefined {
-  try {
-    // resolve from consumer project first
-    const requireFromUser = createRequire(path.join(repoRoot, 'package.json'));
-    return requireFromUser.resolve('tsx/esm');
-  } catch {}
-  try {
-    // fallback: resolve from this package (unlikely needed)
-    const requireSelf = createRequire(import.meta.url);
-    return requireSelf.resolve('tsx/esm');
-  } catch {}
+  // Resolve relative to the target project ONLY
+  const req = createRequire(path.join(repoRoot, 'package.json'));
+  // Prefer the package entry; try esm entry as a fallback for older versions
+  for (const id of ['tsx', 'tsx/esm']) {
+    try {
+      return req.resolve(id);
+    } catch {}
+  }
   return undefined;
 }
 
@@ -113,12 +111,9 @@ export async function loadModuleSmart(
           // mode=off → respect user choice; rethrow with context
           const msg = String(err?.message || err);
           throw new Error(
-            `[sync-doc-defaults] Failed to import built JS ${rel(
-              opts.repoRoot,
-              built
-            )} (ts mode=off).\n` +
-              `Fix your ESM imports (add ".js" to relative paths), or run with "--ts on" / SYNCDOCDEFAULTS_TS=on.\n` +
-              `Original error: ${msg}`
+            `[sync-doc-defaults] Failed to import built JS ${rel(opts.repoRoot, built)} (ts mode=off).\n` +
+            `Fix your ESM imports (add ".js" to relative paths), or run with "--ts on" / SYNCDOCDEFAULTS_TS=on, or install "tsx".\n` +
+            `Original error: ${msg}`
           );
         }
       }

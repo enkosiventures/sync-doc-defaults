@@ -70,9 +70,23 @@ describe('CLI --ts flag', () => {
   });
 
   it('--ts on → explicit tsx error if not installed', async () => {
-    const { code } = await runCli(cwd, ['inject', '--ts', 'on']);
-    expect(code).not.toBe(0);
-  });
+     // If tsx is available from the temp project, the CLI will succeed with --ts on.
+     // Otherwise it should fail with the explicit "tsx not installed" error.
+     let tsxAvailable = false;
+     try {
+       // Check resolution relative to the temp workspace, not the repo root
+       require.resolve('tsx', { paths: [cwd] });
+       tsxAvailable = true;
+     } catch {}
+
+     const { code, err } = await runCli(cwd, ['inject', '--ts', 'on']);
+     if (tsxAvailable) {
+       expect(code).toBe(0);
+     } else {
+       expect(code).not.toBe(0);
+       expect(err).toMatch(/tsx.+not installed|Either build your project|--ts on/i);
+     }
+   });
 
   it('--ts auto → succeeds when built JS exists', async () => {
     // simulate a built JS that loader will prefer
