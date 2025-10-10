@@ -5,6 +5,7 @@ import { createRequire } from 'node:module';
 import type { TsMode } from '../types.js';
 import { inferBuiltJsForTs } from './tsconfig-resolver.js';
 import { Logger } from './log.js';
+import { SddError } from '../errors.js';
 
 
 export function resolveTsxFrom(repoRoot: string): string | undefined {
@@ -48,18 +49,21 @@ export async function loadModuleSmart(
       const msg = String(err?.message || err);
       // Helpful hints for common DX issues
       if (/To load an ES module|Unexpected token 'export'/.test(msg)) {
-        throw new Error(
-          `[sync-doc-defaults] The JS module appears to be ESM but is being loaded without ESM context.\n` +
-          `Add {"type":"module"} to the nearest package.json or rename the file to ".mjs".\n` +
-          `Path: ${defaultsModulePathAbs}\n` +
-          `Original error: ${msg}`
+        throw new SddError(
+          'BUILT_JS_IMPORT_FAILED',
+          `The JS module appears to be ESM but is being loaded without ESM context.\n` +
+          `Add {"type":"module"} to the nearest package.json or rename the file to ".mjs".\n`,
+          { cause: err,
+            details: { context: { path: defaultsModulePathAbs } },
+          }
         );
       }
       if (/ERR_MODULE_NOT_FOUND/.test(msg)) {
-        throw new Error(
-          `[sync-doc-defaults] Failed to import ${getRelativePath(opts.repoRoot, defaultsModulePathAbs)} due to a missing nested import.\n` +
-          `If you're using ESM, ensure all relative imports include the ".js" extension (e.g., "./foo.js").\n` +
-          `Original error: ${msg}`
+        throw new SddError(
+          'BUILT_JS_IMPORT_FAILED',
+          `Failed to import ${getRelativePath(opts.repoRoot, defaultsModulePathAbs)} due to a missing nested import.\n` +
+          `If you're using ESM, ensure all relative imports include the ".js" extension (e.g., "./foo.js").\n`,
+          { cause: err }
         );
       }
       throw err;
@@ -124,22 +128,31 @@ export async function loadModuleSmart(
             return mod?.default ?? mod;
           }
           if (mode === 'on') {
-            throw new Error(
-              'SYNCDOCDEFAULTS_TS=on / --ts on set but "tsx" is not installed in the target project. Install with: pnpm add -D tsx'
+            throw new SddError(
+              'TSX_NOT_INSTALLED',
+              `ts mode is "on" but "tsx" is not installed in the target project.\n` +
+              `Install with: pnpm add -D tsx`,
+              { cause: err }
             );
           }
           // mode=auto and no tsx → fall through to guidance below
         } else {
           // mode=off → respect user choice; rethrow with actionable context
-          const msg = String(err?.message || err);
-          throw new Error(
-            `[sync-doc-defaults] Failed to import built JS ${getRelativePath(opts.repoRoot, built)} (ts mode=off).\n` +
+          throw new SddError(
+            'BUILT_JS_IMPORT_FAILED',
+            `Failed to import built JS ${getRelativePath(opts.repoRoot, built)} (ts mode=off).\n` +
             `Likely fixes:\n` +
             `  • If using ESM, add ".js" to all relative imports (e.g., "./util/logger.js").\n` +
             `  • Or run with "--ts on" (or set SYNCDOCDEFAULTS_TS=on) to load TS via tsx.\n` +
-            `  • Or install tsx locally: pnpm add -D tsx\n` +
-            `Paths: rootDir=${opts.tsRootDir ?? '-'}  outDir=${opts.tsOutDir ?? '-'}  declarationDir=${opts.tsDeclarationDir ?? '-'}\n` +
-            `Original error: ${msg}`
+            `  • Or install tsx locally: pnpm add -D tsx\n`,
+            { cause: err,
+              details: { context: {
+                tsRootDir: opts.tsRootDir,
+                tsOutDir: opts.tsOutDir,
+                tsDeclarationDir: opts.tsDeclarationDir,
+                tsMode: mode,
+              } },
+            }
           );
         }
       }
@@ -154,23 +167,36 @@ export async function loadModuleSmart(
         return mod?.default ?? mod;
       }
       if (mode === 'on') {
-        throw new Error(
-          'SYNCDOCDEFAULTS_TS=on / --ts on set but "tsx" is not installed in the target project. Install with: pnpm add -D tsx'
+        throw new SddError(
+          'TSX_NOT_INSTALLED',
+          `ts mode is "on" but "tsx" is not installed in the target project.\n` +
+          `Install with: pnpm add -D tsx`,
         );
       }
     }
 
     // 3) Helpful guidance (mode=off or tsx not available)
-    throw new Error(
+    throw new SddError(
+      'COULD_NOT_LOAD_TS',
       `Could not load ${getRelativePath(opts.repoRoot, defaultsModulePathAbs)}.\n` +
       `Options:\n` +
       `  • Build your project so compiled JS exists in ${getRelativePath(opts.repoRoot, opts.tsOutDir ?? '<outDir>')}.\n` +
       `  • Or install tsx locally: pnpm add -D tsx\n` +
-      `  • Or run with "--ts on" (or set SYNCDOCDEFAULTS_TS=on) to force TS loading.\n`
+      `  • Or run with "--ts on" (or set SYNCDOCDEFAULTS_TS=on) to force TS loading.\n`,
+      { details: { context: {
+          tsRootDir: opts.tsRootDir,
+          tsOutDir: opts.tsOutDir,
+          tsDeclarationDir: opts.tsDeclarationDir,
+          tsMode: mode,
+        } },
+      }
     );
   }
 
-  throw new Error(`Unsupported file extension for ${defaultsModulePathAbs}`);
+  throw new SddError(
+    'INVALID_CONFIG',
+    `Unsupported file extension for ${defaultsModulePathAbs}`,
+  );
 }
 
 export function getByPath(obj: any, pathStr: string): any {
@@ -185,7 +211,10 @@ export function getByPath(obj: any, pathStr: string): any {
 
 export function assertPlainObject(val: any, ctx: string) {
   if (!val || typeof val !== 'object' || Array.isArray(val)) {
-    throw new Error(`${ctx} must be a plain object (got ${val === null ? 'null' : typeof val})`);
+    throw new SddError(
+      'ASSERT_FAILED',
+      `${ctx} must be a plain object (got ${val === null ? 'null' : typeof val})`
+    );
   }
 }
 

@@ -14,8 +14,9 @@ import { loadModuleSmart } from './infra/source-loader.js';
 import { findNearestTsconfig, loadTsProject } from './infra/tsconfig-resolver.js';
 import { resolveOptions } from './infra/config.js';
 import { extractDeclarationBlock } from './dts-ops/dry-run-extract.js';
-import { Logger } from './infra/log.js';
-import { CONFIG_FILENAME_CANDIDATES } from './constants.js';
+import { Logger, defaultLogger } from './infra/log.js';
+import { CONFIG_FILENAME_CANDIDATES, LOG_PREFIX } from './constants.js';
+import { SddError } from './errors.js';
 
 
 // ===== Public API =====
@@ -25,7 +26,7 @@ import { CONFIG_FILENAME_CANDIDATES } from './constants.js';
  * @param configPath - Path to configuration file
  * @param options - Runtime options
  * @returns Promise resolving to injection results
- * @throws {Error} When config is invalid or files cannot be accessed
+ * @throws {SddError} When config is invalid or files cannot be accessed
  */
 export async function inject(configPath?: string, opts: RunOptions = {}) {
   const options = resolveOptions(opts);
@@ -50,14 +51,14 @@ export async function inject(configPath?: string, opts: RunOptions = {}) {
   });
 
   if (options.debugPaths) {
-    console.log({
+    logger.log(String({
       projectRoot: ts.projectRoot,
       tsconfigPathAbs,
       rootDir: ts.rootDir,
       outDir: ts.outDir,
       declarationDir: ts.declarationDir,
       tsMode: options.tsMode,
-    });
+    }));
   }
 
   let totalUpdates = 0;
@@ -76,8 +77,10 @@ export async function inject(configPath?: string, opts: RunOptions = {}) {
     // defaults object for this target (flat { [prop]: value })
     const defaultsObj = selectDefaults(defaultsModule, target.member);
     if (!defaultsObj || typeof defaultsObj !== 'object') {
-      throw new Error(
-        `[sync-doc-defaults] ${name}: defaults symbol "${target.member}" not found or not an object in ${getRelativePath(repoRoot, defaultsModulePathAbs)}`
+      throw new SddError(
+        'DEFAULTS_SYMBOL_NOT_FOUND',
+        `${name}: defaults symbol "${target.member}" not found or not an object in ${getRelativePath(repoRoot, defaultsModulePathAbs)}`,
+        { details: { context: { path: defaultsModulePathAbs, member: target.member } } },
       );
     }
 
@@ -85,15 +88,21 @@ export async function inject(configPath?: string, opts: RunOptions = {}) {
     let dtsText: string;
     try {
       dtsText = await fs.readFile(dtsPathAbs, 'utf8');
-    } catch {
-      throw new Error(`[sync-doc-defaults] ${name}: .d.ts not found at ${getRelativePath(repoRoot, dtsPathAbs)}`);
+    } catch (err: any) {
+      throw new SddError(
+        'DTS_NOT_FOUND',
+        `${name}: .d.ts not found at ${getRelativePath(repoRoot, dtsPathAbs)}`,
+        { details: { context: { path: dtsPathAbs } }, cause: err },
+      );
     }
 
     // Ensure the requested interface exists; tests expect rejection when missing
     const props = listInterfaceProps(dtsText, target.interface);
     if (!props || props.length === 0) {
-      throw new Error(
-        `[sync-doc-defaults] ${name}: Interface "${target.interface}" not found in ${getRelativePath(repoRoot, dtsPathAbs)}`
+      throw new SddError(
+        'INTERFACE_NOT_FOUND',
+        `${name}: Interface "${target.interface}" not found in ${getRelativePath(repoRoot, dtsPathAbs)}`,
+        { details: { context: { path: dtsPathAbs } } },
       );
     }
 
@@ -116,9 +125,9 @@ export async function inject(configPath?: string, opts: RunOptions = {}) {
       if (!opts.dryRun) {
         await fs.writeFile(dtsPathAbs, updatedText, 'utf8');
       } else {
-        console.log(`--- [sync-doc-defaults] ${name}: updated .d.ts (dryRun) ---\n`);
-        console.log(extractDeclarationBlock(updatedText, target.interface) ?? '(not found)');
-        console.log(`\n--- end of ${name} ---\n`);
+        logger.log(`--- ${LOG_PREFIX} ${name}: updated .d.ts (dryRun) ---\n`, true);
+        logger.log(extractDeclarationBlock(updatedText, target.interface) ?? '(not found)', true);
+        logger.log(`\n--- end of ${name} ---\n`, true);
       }
       logger.log(`${name}: injected ${updatedCount} @${tag} update(s) → ${getRelativePath(repoRoot, dtsPathAbs)}`);
       
@@ -139,8 +148,8 @@ export async function inject(configPath?: string, opts: RunOptions = {}) {
  * @param configPath - Path to configuration file. If omitted, searches upward from cwd
  * @param options - Runtime options for controlling behavior
  * @returns Promise that resolves if all defaults match
- * @throws {DocDefaultsError} With code 1 when any @default tag doesn't match the runtime value
- * @throws {Error} When configuration is invalid or required files cannot be found
+ * @throws {SddError} When any @default tag doesn't match the runtime value
+ * @throws {SddError} When configuration is invalid or required files cannot be found
  * @example
  * // Check defaults are in sync
  * await assert('./docdefaults.config.mjs');
@@ -179,16 +188,22 @@ export async function assert(configPath?: string, opts: RunOptions = {}) {
 
     const defaultsObj = selectDefaults(defaultsModule, target.member);
     if (!defaultsObj || typeof defaultsObj !== 'object') {
-      throw new Error(
-        `[sync-doc-defaults] ${name}: defaults symbol "${target.member}" not found or not an object in ${getRelativePath(repoRoot, defaultsModulePathAbs)}`
+      throw new SddError(
+        'DEFAULTS_SYMBOL_NOT_FOUND',
+        `${name}: defaults symbol "${target.member}" not found or not an object in ${getRelativePath(repoRoot, defaultsModulePathAbs)}`,
+        { details: { context: { path: defaultsModulePathAbs, member: target.member } } },
       );
     }
 
     let dtsText: string;
     try {
       dtsText = await fs.readFile(dtsPathAbs, 'utf8');
-    } catch {
-      throw new Error(`[sync-doc-defaults] ${name}: .d.ts not found at ${getRelativePath(repoRoot, dtsPathAbs)}`);
+    } catch (err: any) {
+      throw new SddError(
+        'DTS_NOT_FOUND',
+        `${name}: .d.ts not found at ${getRelativePath(repoRoot, dtsPathAbs)}`,
+        { details: { context: { path: dtsPathAbs } }, cause: err },
+      );
     }
 
     const { ok, mismatches } = assertDefaultsInDts({
@@ -210,9 +225,10 @@ export async function assert(configPath?: string, opts: RunOptions = {}) {
   }
 
   if (anyMismatch) {
-    const err: any = new Error('sync-doc-defaults assert failed');
-    err.code = 1;
-    throw err;
+    throw new SddError(
+      'ASSERT_FAILED',
+      'assert failed',
+    );
   }
 }
 
@@ -224,7 +240,10 @@ function validatePathWithinRoot(rootDir: string, targetPath: string, label: stri
   const normalizedResolved = path.normalize(resolved) + (resolved.endsWith(path.sep) ? path.sep : '');
   
   if (!normalizedResolved.startsWith(normalizedRoot)) {
-    throw new Error(`[sync-doc-defaults] Security: ${label} path escapes project root: ${targetPath}`);
+    throw new SddError(
+      'CLI_USAGE',
+      `${label} path escapes project root: ${targetPath}`,
+    );
   }
   return resolved;
 }
@@ -234,8 +253,9 @@ async function loadConfigResolved(configPath: string | undefined, opts: Options)
   const repoRoot = opts.repoRoot;
   const configPathAbs = await findConfigPath(repoRoot, configPath);
   if (!configPathAbs) {
-    throw new Error(
-      `[sync-doc-defaults] config file not found. Looked for docdefaults.config.(mjs|cjs|js|ts|json) from ${repoRoot}`
+    throw new SddError(
+      'CONFIG_NOT_FOUND',
+      `Config file not found. Looked for docdefaults.config.(mjs|cjs|js|ts|json) from ${repoRoot}`,
     );
   }
   const config = await importConfig(
@@ -259,16 +279,29 @@ function validateConfig(raw: any, configPath: string): asserts raw is DocDefault
   const config = (raw.default ?? raw) as DocDefaultsConfig;
   if (!config || typeof config !== 'object') throw new Error(`[sync-doc-defaults] invalid config export at ${configPath}`);
   if (!config.defaults || !config.targets) {
-    // throw new Error(`[sync-doc-defaults] config must include "defaults" and "targets" at ${configPath}`);
-    throw new Error(`[sync-doc-defaults] Could not load config at ${configPath}: must include "defaults" and "targets"`);
+    throw new SddError(
+      'INVALID_CONFIG',
+      `Could not load config at ${configPath}: must include "defaults" and "targets"`,
+      { details: { context: { path: configPath } } }
+    );
   }
   // lightweight shape check:
-  if (!Array.isArray(config.targets)) throw new Error(`[sync-doc-defaults] "targets" must be an array`);
+  if (!Array.isArray(config.targets)) throw new SddError(
+    'INVALID_CONFIG',
+    `Could not load config at ${configPath}: "targets" must be an array`,
+    { details: { context: { path: configPath } } },
+  );
   for (const target of config.targets) {
-    if (!target || typeof target !== 'object') throw new Error(`[sync-doc-defaults] each target must be an object`);
+    if (!target || typeof target !== 'object') throw new SddError(
+      'INVALID_CONFIG',
+      `Could not load config at ${configPath}: each target must be an object`,
+      { details: { context: { path: configPath } } },
+    );
     if (!target.types || !target.interface || !target.member) {
-      throw new Error(
-        `[sync-doc-defaults] target missing required fields (need "types", "interface", "member")`
+      throw new SddError(
+        'INVALID_CONFIG',
+        `Could not load config at ${configPath}: target missing required fields (need "types", "interface", "member")`,
+        { details: { context: { path: configPath } } },
       );
     }
   }
@@ -288,7 +321,7 @@ async function resolveTsconfigPathAbs(repoRoot: string, tsconfigPath?: string) {
  * Uses the relationship between rootDir and declarationDir to map source to output.
  * @param args - Path resolution parameters
  * @returns Absolute path to the expected .d.ts file
- * @throws {Error} When .d.ts location cannot be inferred and no explicit path provided
+ * @throws {SddError} When .d.ts location cannot be inferred and no explicit path provided
  * @example
  * // With rootDir="src", declarationDir="dist/types", typesPath="src/index.ts"
  * // Returns: "/absolute/path/to/dist/types/index.d.ts"
@@ -303,8 +336,9 @@ async function resolveDtsPathAbs(args: {
   const { repoRoot, tsRootDir, tsDeclarationDir, typesPath, dtsPath } = args;
   if (dtsPath) return validatePathWithinRoot(repoRoot, dtsPath, 'dts');
   if (!tsRootDir || !tsDeclarationDir) {
-    throw new Error(
-      `[sync-doc-defaults] could not infer .d.ts for ${typesPath}. Ensure tsconfig has "rootDir" and "declarationDir", or provide "dtsPath".`
+    throw new SddError(
+      'CLI_USAGE',
+      `Could not infer .d.ts for ${typesPath}. Ensure tsconfig has "rootDir" and "declarationDir", or provide "dts" in config`,
     );
   }
   const srcAbs = validatePathWithinRoot(repoRoot, typesPath, 'types');
@@ -344,7 +378,7 @@ function selectDefaults(mod: any, pathExpr: string): unknown {
     }
   } catch (e) {
     // Getter or proxy trap threw while accessing property
-    console.error(`[sync-doc-defaults] Error accessing defaults path "${pathExpr}":`, e);
+    defaultLogger.error(`Error accessing defaults path "${pathExpr}":`, e);
     return undefined;
   }
   

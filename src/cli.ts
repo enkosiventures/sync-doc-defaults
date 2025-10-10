@@ -3,18 +3,22 @@ import type { Options, TsMode } from './types.js';
 import { discoverConfig } from './infra/config.js';
 import { inject, assert } from './api.js';
 import { EXIT_CODES } from './constants.js';
+import { configNotFound, usageError } from './errors.js';
 
 
 // exit codes:
 // 0 = success/help
 // 1 = assertion/validation failure
 // 2 = config not found
-// 3 = general error
+// 3 = loading error
+// 4 = invalid config
+// 5 = usage error
+// 6 = general error
 
 type Subcommand = 'inject' | 'assert';
 
-function usage(code: number, msg?: string): never {
-  if (msg) console.error(msg);
+function usage(code: number, message?: string): never {
+  if (message) console.error(message);
   console.error(`
 sync-doc-defaults v1.0.0
 
@@ -53,11 +57,11 @@ Examples:
   process.exit(code);
 }
 
-function coerceTsMode(val: any | undefined): TsMode | undefined {
-  if (val == null) return undefined;
-  const v = String(val).toLowerCase();
-  if (v === 'on' || v === 'off' || v === 'auto') return v;
-  throw new Error(`Invalid value for --ts: ${val}. Use on|off|auto.`);
+function coerceTsMode(value: any | undefined): TsMode | undefined {
+  if (value == null) return undefined;
+  const coerced = String(value).toLowerCase();
+  if (coerced === 'on' || coerced === 'off' || coerced === 'auto') return coerced;
+  throw usageError(`Invalid value for --ts: ${coerced}. Use on|off|auto.`);
 }
 
 async function main() {
@@ -90,33 +94,35 @@ async function main() {
       if (a === '--dry') { dryRun = true; continue; }
       if (a === '--tag') { tag = (argv[++i] === 'defaultValue' ? 'defaultValue' : 'default'); continue; }
       if (a === '--ts') {
-        if (!argv[i + 1]) usage(1, 'Missing value for --ts (use on|off|auto)');
+        if (!argv[i + 1]) throw usageError('Missing value for --ts (use on|off|auto)');
         tsMode = coerceTsMode(argv[++i]);
         continue;
       }
-      usage(1, `Unknown option: ${a}`);
+      throw usageError(`Unknown option: ${a}`);
     }
 
     if (!configPath) {
       const found = await discoverConfig(process.cwd());
       if (!found) {
-        console.error('[sync-doc-defaults] No config found. Looked for docdefaults.config.(mjs|cjs|js|json) up from cwd.');
-        process.exit(EXIT_CODES.CONFIG_NOT_FOUND);
+        throw configNotFound(process.cwd());
       }
       configPath = found;
     }
 
     const repoRoot = process.cwd(); // treat cwd as project root
-    const opts: Options = { repoRoot, quiet, debugPaths, dryRun, tsMode, tag };
+    const options: Options = { repoRoot, quiet, debugPaths, dryRun, tsMode, tag };
 
-    if (cmd === 'inject') await inject(configPath, opts);
-    else await assert(configPath, { ...opts, dryRun: false });
+    if (cmd === 'inject') await inject(configPath, options);
+    else await assert(configPath, { ...options, dryRun: false });
 
     process.exit(EXIT_CODES.SUCCESS);
   } catch (err: any) {
-    const code = typeof err?.code === 'number' ? err.code : EXIT_CODES.GENERAL_ERROR;
-    console.error(`[sync-doc-defaults] ${err?.message ?? err}`);
-    process.exit(code);
+    const exitCode =
+      typeof err?.exitCode === 'number' ? err.exitCode :
+      typeof err?.code === 'number' ? err.code :
+      EXIT_CODES.GENERAL_ERROR;
+    console.error(err?.message ?? String(err));
+    process.exit(exitCode);
   }
 }
 

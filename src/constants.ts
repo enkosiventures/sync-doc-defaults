@@ -1,6 +1,8 @@
 import type { PreferredTag, RunOptions, TsMode } from "./types.js";
 
 
+export const LOG_PREFIX = '[sync-doc-defaults]';
+
 export const RUN_DEFAULTS: Required<
   Pick<RunOptions, 'dryRun' | 'quiet' | 'debugPaths' | 'tsMode' | 'tag'>
 > = {
@@ -33,7 +35,23 @@ export const TSCONFIG_FILENAME_CANDIDATES = [
 
 export const EXIT_CODES = {
   SUCCESS: 0,
+
+  // Assertions/expected validation failures (e.g., assert mismatches)
   VALIDATION_ERROR: 1,
+
+  // Config could not be discovered (walk-up failed)
   CONFIG_NOT_FOUND: 2,
-  GENERAL_ERROR: 3,
-};
+
+  // Runtime load/resolve problems (I/O, tsx missing, built JS import failed,
+  // .d.ts not found, interface not found, defaults symbol not found, etc.)
+  LOADING_ERROR: 3,
+
+  // Config file was found but is invalid (wrong shape/fields)
+  INVALID_CONFIG: 4,
+
+  // Bad CLI usage (unknown flag, missing argument) -> distinct from runtime failures
+  USAGE_ERROR: 5,
+
+  // Everything else (unexpected/unhandled)
+  GENERAL_ERROR: 6,
+} as const;

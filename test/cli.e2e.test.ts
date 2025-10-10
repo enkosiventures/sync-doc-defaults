@@ -50,7 +50,7 @@ describe('docdefaults CLI (e2e)', () => {
   it('returns code=2 when config is missing and no discovery possible', async () => {
     const { code, stderr } = await runCli(['assert'], { tempDirPath });
     expect(code).toBe(2);
-    expect(stderr).toMatch(/No config found/i);
+    expect(stderr).toContain('Config file not found');
   });
 
   it('supports explicit --config and fails assert before injection (code=1)', async () => {

@@ -204,7 +204,7 @@ describe('index (errors & branches)', () => {
     expect(text).toMatch(/@default "bar"/);
   });
 
-  it('handles defaults module with throwing getters gracefully', async () => { // FAILING
+  it('handles defaults module with throwing getters gracefully', async () => {
     const constants = path.join(tempDirPath, 'constants.js');
     const dts = path.join(tempDirPath, 'types.d.ts');
     
