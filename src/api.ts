@@ -21,8 +21,11 @@ import { CONFIG_FILENAME_CANDIDATES } from './constants.js';
 // ===== Public API =====
 
 /**
- * Injects @default literals into all targets.
- * Throws on critical errors (missing interface, missing defaults symbol, etc.)
+ * Injects runtime default values into TypeScript declaration files.
+ * @param configPath - Path to configuration file
+ * @param options - Runtime options
+ * @returns Promise resolving to injection results
+ * @throws {Error} When config is invalid or files cannot be accessed
  */
 export async function inject(configPath?: string, opts: RunOptions = {}) {
   const options = resolveOptions(opts);
@@ -132,8 +135,18 @@ export async function inject(configPath?: string, opts: RunOptions = {}) {
 }
 
 /**
- * Asserts that @default literals are in sync across all targets.
- * Throws when any mismatch is found (prints a concise report).
+ * Verifies that JSDoc @default tags in declaration files match runtime default values.
+ * @param configPath - Path to configuration file. If omitted, searches upward from cwd
+ * @param options - Runtime options for controlling behavior
+ * @returns Promise that resolves if all defaults match
+ * @throws {DocDefaultsError} With code 1 when any @default tag doesn't match the runtime value
+ * @throws {Error} When configuration is invalid or required files cannot be found
+ * @example
+ * // Check defaults are in sync
+ * await assert('./docdefaults.config.mjs');
+ * 
+ * // Use in CI to ensure documentation stays current
+ * await assert(undefined, { quiet: true });
  */
 export async function assert(configPath?: string, opts: RunOptions = {}) {
   const options = resolveOptions(opts);
@@ -271,9 +284,14 @@ async function resolveTsconfigPathAbs(repoRoot: string, tsconfigPath?: string) {
 }
 
 /**
- * Infer the .d.ts path from srcPath using tsconfig's rootDir & declarationDir when dtsPath is not provided.
- * Example: srcPath="src/consent/types.ts", rootDir="src", declarationDir="dist/types"
- * → dist/types/consent/types.d.ts
+ * Infers the output .d.ts path for a TypeScript source file based on tsconfig settings.
+ * Uses the relationship between rootDir and declarationDir to map source to output.
+ * @param args - Path resolution parameters
+ * @returns Absolute path to the expected .d.ts file
+ * @throws {Error} When .d.ts location cannot be inferred and no explicit path provided
+ * @example
+ * // With rootDir="src", declarationDir="dist/types", typesPath="src/index.ts"
+ * // Returns: "/absolute/path/to/dist/types/index.d.ts"
  */
 async function resolveDtsPathAbs(args: {
   repoRoot: string;
@@ -295,7 +313,16 @@ async function resolveDtsPathAbs(args: {
   return out;
 }
 
-/** Get a (possibly dotted) symbol from a module object. e.g. "DEFAULTS" or "DEFAULTS.consent" */
+/**
+ * Resolves a (possibly nested) property from a module object using dot notation.
+ * Handles ES module default exports and CommonJS interop.
+ * @param mod - Module object to traverse
+ * @param pathExpr - Dot-separated path (e.g., "DEFAULTS" or "config.defaults.ui")
+ * @returns The resolved value, or undefined if not found or if a getter throws
+ * @example
+ * selectDefaults(module, "DEFAULTS") // returns module.DEFAULTS
+ * selectDefaults(module, "config.nested.value") // returns module.config.nested.value
+ */
 function selectDefaults(mod: any, pathExpr: string): unknown {
   const parts = pathExpr.split('.');
   let cur = mod;

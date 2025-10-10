@@ -1,4 +1,13 @@
-/** Find the character range [start,end) of a named interface body (“{ ... }”). */
+/**
+ * Finds the character range of an interface body in TypeScript declaration text.
+ * Handles nested braces and export modifiers.
+ * @param text - TypeScript declaration file content
+ * @param interfaceName - Name of the interface to find
+ * @returns Object with bodyStart and bodyEnd character positions, or undefined if not found
+ * @example
+ * findInterfaceBody("interface Foo { x: number; }", "Foo")
+ * // Returns: { bodyStart: 15, bodyEnd: 27 }
+ */
 export function findInterfaceBody(text: string, interfaceName: string): { bodyStart: number; bodyEnd: number } | undefined {
   // Support "export interface X" or "interface X"
   const re = new RegExp(`\\b(?:export\\s+)?interface\\s+${escapeRe(interfaceName)}\\s*{`, 'm');
