@@ -173,6 +173,48 @@ export default {
 
 ---
 
+## Build output requirements
+
+`syn​c-doc-defaults` reads your **generated `.d.ts`** files to update JSDoc. Make sure your build produces them:
+
+**Option A — tsc**
+```jsonc
+// tsconfig.json
+{
+  "compilerOptions": {
+    "rootDir": "src",
+    "outDir": "dist/src",
+    "declaration": true,
+    "declarationDir": "dist/types",
+    "module": "ESNext",
+    "target": "ES2020",
+    "moduleResolution": "Bundler"
+  }
+}
+```
+
+Then:
+
+```bash
+pnpm tsc -p tsconfig.json
+```
+
+**Option B — tsup**
+
+```ts
+// tsup.config.ts
+export default {
+  entry: ['src/index.ts', 'src/cli.ts'],
+  format: ['esm', 'cjs'],
+  dts: true,         // emits .d.ts
+  outDir: 'dist'
+};
+```
+
+> **ESM note:** in compiled JS, include the `.js` extension on **all relative imports** (e.g., `import './util/logger.js'`), otherwise Node will error with `ERR_MODULE_NOT_FOUND`.
+
+---
+
 ## Example workflow
 
 In `package.json`:
