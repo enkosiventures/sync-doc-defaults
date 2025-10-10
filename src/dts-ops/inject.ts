@@ -5,8 +5,11 @@ import { listInterfaceProps } from './locator.js';
 
 /**
  * Inject default literals into a `.d.ts` text for a given interface.
- * - Rewrites/creates a canonical JSDoc above each property with the default.
- * - Idempotent.
+ * - Rewrites/creates a canonical JSDoc above each property.
+ * - Idempotent: no changes when the literal already matches and the preferred tag is already used.
+ * - Tag normalization: will switch `@defaultValue` ↔ `@default` to match `preferredTag`.
+ * - Only properties present in `defaults` are considered; properties missing from the interface are
+ *   reported via the `missing` array (they are not added to the interface).
  */
 export function injectDefaultsIntoDts(params: {
   dtsText: string;
@@ -89,7 +92,6 @@ export function injectDefaultsIntoDts(params: {
 
     text = upsertDefaultForProp(text, task.headStart, task.indent, task.expected, preferredTag);
     updated++;
-
 
     // For maximal safety at the cost of performance,
     // recompute the latest headStart here instead of sorting:

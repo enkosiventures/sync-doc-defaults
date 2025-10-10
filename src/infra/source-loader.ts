@@ -21,6 +21,52 @@ export function resolveTsxFrom(repoRoot: string): string | undefined {
   return undefined;
 }
 
+/**
+ * Intelligently loads a module (TypeScript or JavaScript) with automatic format detection and fallback strategies.
+ * 
+ * This function implements a sophisticated module loading strategy that prioritizes compiled JavaScript
+ * when available but gracefully falls back to TypeScript source files when necessary. It handles the
+ * complexity of mixed TypeScript/JavaScript projects where some files may be compiled and others not.
+ * 
+ * Loading priority:
+ * 1. For `.json` files: Direct JSON.parse of file contents
+ * 2. For `.js`, `.mjs`, `.cjs` files: Direct import (ESM or CJS via Node semantics)
+ * 3. For `.ts`, `.tsx` files:
+ *    a) try compiled JS inferred from tsconfig (rootDir/outDir/declarationDir)
+ *    b) if that fails, try a `.cjs` twin next to the built JS (CJS fallback)
+ *    c) if allowed and available, register `tsx` and import the TS source
+ *    d) otherwise surface a guided error detailing likely fixes
+ * 
+ * @param defaultsModulePathAbs - Absolute path to the module to load
+ * @param opts - Configuration options
+ * @param opts.repoRoot - Repository root for relative path resolution
+ * @param opts.tsRootDir - TypeScript rootDir from tsconfig (for inferring output paths)
+ * @param opts.tsOutDir - TypeScript outDir from tsconfig (for finding compiled JS)
+ * @param opts.tsDeclarationDir - TypeScript declarationDir (used as fallback for output inference)
+ * @param opts.tsMode - How to handle TypeScript files:
+ *                      'auto': Try compiled JS first, fall back to tsx if available
+ *                      'on': Always use tsx for TS files (requires tsx installed)
+ *                      'off': Never load TS directly, require compiled JS
+ * @param opts.quiet - Suppress non-error log output
+ * @param opts.debug - Enable detailed path resolution logging
+ * 
+ * @returns The loaded module (default export or full module object)
+ * 
+ * @throws {SddError} with codes:
+ *    - `BUILT_JS_IMPORT_FAILED`   (e.g., ESM loaded without ESM context, missing .js extensions)
+ *    - `TSX_NOT_INSTALLED`        (mode='on' but `tsx` is not present in the consumer project)
+ *    - `COULD_NOT_LOAD_TS`        (no built JS; TS load disallowed/unavailable)
+ *    - `INVALID_CONFIG`           (unsupported extension)
+ * 
+ * @example
+ * // Load with automatic format detection
+ * const defaults = await loadModuleSmart('/path/to/constants.ts', {
+ *   repoRoot: '/project',
+ *   tsRootDir: '/project/src',
+ *   tsOutDir: '/project/dist',
+ *   tsMode: 'auto'
+ * });
+ */
 export async function loadModuleSmart(
   defaultsModulePathAbs: string,
   options: {

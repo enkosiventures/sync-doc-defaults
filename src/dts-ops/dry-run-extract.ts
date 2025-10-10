@@ -134,20 +134,23 @@ function findMatchingBracket(s: string, openIdx: number, openCh: '{' | '(' | '['
 /**
  * Scans from a starting position to find the semicolon that terminates a type alias.
  * Handles nested structures, string literals, comments, and generic parameters that may contain semicolons.
- * @param s - The source text to scan
+ * - Braces, semicolons, etc. inside string literals or comments are ignored.
+ * - Angle bracket depth is tracked heuristically for generic type parameters.
+ * 
+ * @param source - The source text to scan
  * @param start - Character position to start scanning from (after the '=')
  * @returns Position of the terminating semicolon, or -1 if not found
  */
-function scanTypeAliasEnd(s: string, start: number) {
+function scanTypeAliasEnd(source: string, start: number) {
   let i = start;
   let inS: '"' | "'" | '`' | null = null;
   let inLine = false;
   let inBlock = false;
   let bCurly = 0, bParen = 0, bSquare = 0, bAngle = 0;
 
-  for (; i < s.length; i++) {
-    const ch = s[i];
-    const prev = i > 0 ? s[i - 1] : '';
+  for (; i < source.length; i++) {
+    const ch = source[i];
+    const prev = i > 0 ? source[i - 1] : '';
 
     if (inLine) {
       if (ch === '\n') inLine = false;
