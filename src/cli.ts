@@ -4,6 +4,7 @@ import { discoverConfig } from './infra/config.js';
 import { inject, assert } from './api.js';
 import { EXIT_CODES } from './constants.js';
 import { configNotFound, usageError } from './errors.js';
+import { defaultLogger } from './infra/log.js';
 
 
 // exit codes:
@@ -18,7 +19,7 @@ import { configNotFound, usageError } from './errors.js';
 type Subcommand = 'inject' | 'assert';
 
 function usage(code: number, message?: string): never {
-  if (message) console.error(message);
+  if (message) defaultLogger.error(message);
   console.error(`
 sync-doc-defaults v1.0.0
 
@@ -73,7 +74,7 @@ async function main() {
     if (argv.includes('--version') || argv.includes('-v')) {
       // lazy load to avoid ESM import at top
       const pkg = await import('../package.json', { assert: { type: 'json' } } as any).catch(() => null);
-      console.log(pkg?.default?.version ?? 'unknown');
+      defaultLogger.log(pkg?.default?.version ?? 'unknown');
       process.exit(0);
     }
     const cmd = argv[0] as Subcommand;
@@ -121,7 +122,7 @@ async function main() {
       typeof err?.exitCode === 'number' ? err.exitCode :
       typeof err?.code === 'number' ? err.code :
       EXIT_CODES.GENERAL_ERROR;
-    console.error(err?.message ?? String(err));
+    defaultLogger.error(err?.message ?? String(err));
     process.exit(exitCode);
   }
 }

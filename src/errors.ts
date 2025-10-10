@@ -38,7 +38,7 @@ export class SddError extends Error {
   readonly details?: ErrorDetails;
   readonly cause?: unknown;
 
-  constructor(code: ErrorCode, message: string, opts?: {
+  constructor(code: ErrorCode, message: string, options?: {
     exitCode?: number;
     details?: ErrorDetails;
     cause?: unknown;
@@ -46,9 +46,9 @@ export class SddError extends Error {
     super(message.startsWith(LOG_PREFIX) ? message : `${LOG_PREFIX} ${message}`);
     this.name = 'SddError';
     this.code = code;
-    this.exitCode = opts?.exitCode ?? DEFAULT_EXIT_BY_CODE[code] ?? EXIT_CODES.GENERAL_ERROR;
-    this.details = opts?.details;
-    if (opts?.cause) this.cause = opts.cause;
+    this.exitCode = options?.exitCode ?? DEFAULT_EXIT_BY_CODE[code] ?? EXIT_CODES.GENERAL_ERROR;
+    this.details = options?.details;
+    if (options?.cause) this.cause = options.cause;
   }
 }
 

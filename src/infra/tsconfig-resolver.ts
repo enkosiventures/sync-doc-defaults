@@ -8,8 +8,8 @@ export function findNearestTsconfig(startDir: string): string | undefined {
   let dir = startDir;
   while (true) {
     for (const name of TSCONFIG_FILENAME_CANDIDATES) {
-      const p = path.join(dir, name);
-      if (fs.existsSync(p)) return p;
+      const pathFromStart = path.join(dir, name);
+      if (fs.existsSync(pathFromStart)) return pathFromStart;
     }
     const parent = path.dirname(dir);
     if (parent === dir) return undefined;
@@ -22,14 +22,14 @@ export function loadTsProject(tsconfigPathAbs: string | undefined): LoadedTsProj
   const dir = path.dirname(tsconfigPathAbs);
   try {
     const raw = JSON.parse(fs.readFileSync(tsconfigPathAbs, 'utf8'));
-    const co = raw?.compilerOptions ?? {};
+    const options = raw?.compilerOptions ?? {};
     return {
       projectRoot: dir,
       tsconfigPathAbs,
-      rootDir: co.rootDir ? path.resolve(dir, co.rootDir) : undefined,
-      outDir: co.outDir ? path.resolve(dir, co.outDir) : undefined,
-      declarationDir: co.declarationDir ? path.resolve(dir, co.declarationDir) : undefined,
-      tsMode: co.tsMode as TsMode | undefined,
+      rootDir: options.rootDir ? path.resolve(dir, options.rootDir) : undefined,
+      outDir: options.outDir ? path.resolve(dir, options.outDir) : undefined,
+      declarationDir: options.declarationDir ? path.resolve(dir, options.declarationDir) : undefined,
+      tsMode: options.tsMode as TsMode | undefined,
     };
   } catch {
     return { projectRoot: dir, tsconfigPathAbs };
@@ -40,9 +40,9 @@ export function inferDtsFromSrc(ts: LoadedTsProject, srcAbs: string): string | u
   const outBase = ts.declarationDir ?? ts.outDir;
   const root = ts.rootDir;
   if (!outBase || !root) return undefined;
-  const rel = path.relative(root, srcAbs);
-  if (rel.startsWith('..')) return undefined;
-  return path.resolve(outBase, replaceExt(rel, '.d.ts'));
+  const relativePath = path.relative(root, srcAbs);
+  if (relativePath.startsWith('..')) return undefined;
+  return path.resolve(outBase, replaceExtension(relativePath, '.d.ts'));
 }
 
 export function inferBuiltJsForTs(args: {
@@ -56,12 +56,12 @@ export function inferBuiltJsForTs(args: {
   const outBase = tsOutDir ?? tsDeclarationDir;
   const root = tsRootDir;
   if (!outBase || !root) return undefined;
-  const relFromRoot = path.relative(root, defaultsModulePathAbs);
-  if (relFromRoot.startsWith('..')) return undefined;
-  return path.resolve(outBase, replaceExt(relFromRoot, '.js'));
+  const relativePathFromRoot = path.relative(root, defaultsModulePathAbs);
+  if (relativePathFromRoot.startsWith('..')) return undefined;
+  return path.resolve(outBase, replaceExtension(relativePathFromRoot, '.js'));
 }
 
-export function replaceExt(p: string, newExt: string) {
-  const i = p.lastIndexOf('.');
-  return i === -1 ? p + newExt : p.slice(0, i) + newExt;
+function replaceExtension(pathStr: string, newExtension: string) {
+  const i = pathStr.lastIndexOf('.');
+  return i === -1 ? pathStr + newExtension : pathStr.slice(0, i) + newExtension;
 }

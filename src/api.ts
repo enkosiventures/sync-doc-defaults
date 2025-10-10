@@ -14,9 +14,10 @@ import { loadModuleSmart } from './infra/source-loader.js';
 import { findNearestTsconfig, loadTsProject } from './infra/tsconfig-resolver.js';
 import { resolveOptions } from './infra/config.js';
 import { extractDeclarationBlock } from './dts-ops/dry-run-extract.js';
-import { Logger, defaultLogger } from './infra/log.js';
+import { createLogger, defaultLogger } from './infra/log.js';
 import { CONFIG_FILENAME_CANDIDATES, LOG_PREFIX } from './constants.js';
 import { SddError } from './errors.js';
+import { getRelativePath } from './utils.js';
 
 
 // ===== Public API =====
@@ -24,15 +25,15 @@ import { SddError } from './errors.js';
 /**
  * Injects runtime default values into TypeScript declaration files.
  * @param configPath - Path to configuration file
- * @param options - Runtime options
+ * @param runOptions - Runtime options
  * @returns Promise resolving to injection results
  * @throws {SddError} When config is invalid or files cannot be accessed
  */
-export async function inject(configPath?: string, opts: RunOptions = {}) {
-  const options = resolveOptions(opts);
-  const logger = new Logger(options.quiet, options.debugPaths);
+export async function inject(configPath?: string, runOptions: RunOptions = {}) {
+  const options = resolveOptions(runOptions);
+  const logger = createLogger(options);
   const { config, repoRoot } = await loadConfigResolved(configPath, options);
-  const tag: PreferredTag = opts.tag ?? config.tag ?? 'default';
+  const tag: PreferredTag = options.tag ?? config.tag ?? 'default';
 
   // Resolve TypeScript paths (rootDir/outDir/declarationDir)
   const tsconfigPathAbs = await resolveTsconfigPathAbs(repoRoot, config.tsconfig);
@@ -122,7 +123,7 @@ export async function inject(configPath?: string, opts: RunOptions = {}) {
 
     if (updatedCount > 0) {
       totalUpdates += updatedCount;
-      if (!opts.dryRun) {
+      if (!options.dryRun) {
         await fs.writeFile(dtsPathAbs, updatedText, 'utf8');
       } else {
         logger.log(`--- ${LOG_PREFIX} ${name}: updated .d.ts (dryRun) ---\n`, true);
@@ -157,9 +158,9 @@ export async function inject(configPath?: string, opts: RunOptions = {}) {
  * // Use in CI to ensure documentation stays current
  * await assert(undefined, { quiet: true });
  */
-export async function assert(configPath?: string, opts: RunOptions = {}) {
-  const options = resolveOptions(opts);
-  const logger = new Logger(options.quiet, options.debugPaths);
+export async function assert(configPath?: string, runOptions: RunOptions = {}) {
+  const options = resolveOptions(runOptions);
+  const logger = createLogger(options);
   const { config, repoRoot } = await loadConfigResolved(configPath, options);
   const tsconfigPathAbs = await resolveTsconfigPathAbs(repoRoot, config.tsconfig);
   const ts = loadTsProject(tsconfigPathAbs);
@@ -248,9 +249,9 @@ function validatePathWithinRoot(rootDir: string, targetPath: string, label: stri
   return resolved;
 }
 
-async function loadConfigResolved(configPath: string | undefined, opts: Options) {
-  const logger = new Logger(opts.quiet, opts.debugPaths);
-  const repoRoot = opts.repoRoot;
+async function loadConfigResolved(configPath: string | undefined, options: Options) {
+  const logger = createLogger(options);
+  const repoRoot = options.repoRoot;
   const configPathAbs = await findConfigPath(repoRoot, configPath);
   if (!configPathAbs) {
     throw new SddError(
@@ -262,9 +263,9 @@ async function loadConfigResolved(configPath: string | undefined, opts: Options)
     configPathAbs,
     {
       repoRoot,
-      tsMode: opts.tsMode,
-      quiet: opts.quiet,
-      debug: opts.debugPaths,
+      tsMode: options.tsMode,
+      quiet: options.quiet,
+      debug: options.debugPaths,
     }
   );
   validateConfig(config, configPathAbs);
@@ -350,16 +351,16 @@ async function resolveDtsPathAbs(args: {
 /**
  * Resolves a (possibly nested) property from a module object using dot notation.
  * Handles ES module default exports and CommonJS interop.
- * @param mod - Module object to traverse
+ * @param module - Module object to traverse
  * @param pathExpr - Dot-separated path (e.g., "DEFAULTS" or "config.defaults.ui")
  * @returns The resolved value, or undefined if not found or if a getter throws
  * @example
  * selectDefaults(module, "DEFAULTS") // returns module.DEFAULTS
  * selectDefaults(module, "config.nested.value") // returns module.config.nested.value
  */
-function selectDefaults(mod: any, pathExpr: string): unknown {
+function selectDefaults(module: any, pathExpr: string): unknown {
   const parts = pathExpr.split('.');
-  let cur = mod;
+  let cur = module;
   
   try {
     for (const p of parts) {
@@ -368,25 +369,21 @@ function selectDefaults(mod: any, pathExpr: string): unknown {
     }
     
     // if the symbol is the default export itself
-    if (cur == null && parts.length === 1 && (mod?.default != null)) {
+    if (cur == null && parts.length === 1 && (module?.default != null)) {
       try {
-        cur = mod.default[parts[0]];
+        cur = module.default[parts[0]];
       } catch (_) {
         // Getter on default export threw
         return undefined;
       }
     }
-  } catch (e) {
+  } catch (err) {
     // Getter or proxy trap threw while accessing property
-    defaultLogger.error(`Error accessing defaults path "${pathExpr}":`, e);
+    defaultLogger.error(`Error accessing defaults path "${pathExpr}":`, err);
     return undefined;
   }
   
   return cur;
-}
-
-function getRelativePath(base: string, p: string) {
-  return path.relative(base, p) || '.';
 }
 
 // ===== Config loader (supports mjs/cjs/js/ts) =====
@@ -411,22 +408,22 @@ async function findConfigPath(startDir: string, explicit?: string) {
   return undefined;
 }
 
-async function importConfig(configPathAbs: string, opts: { repoRoot: string; tsMode?: TsMode; quiet?: boolean; debug?: boolean }) {
-  const ext = path.extname(configPathAbs).toLowerCase();
-  if (ext === '.json') {
+async function importConfig(configPathAbs: string, options: { repoRoot: string; tsMode?: TsMode; quiet?: boolean; debug?: boolean }) {
+  const extension = path.extname(configPathAbs).toLowerCase();
+  if (extension === '.json') {
     const raw = await fs.readFile(configPathAbs, 'utf8');
     return JSON.parse(raw);
   }
-  if (ext === '.ts' || ext === '.tsx') {
+  if (extension === '.ts' || extension === '.tsx') {
     // import .ts config via the same smart loader (tsx if available)
-    const mod = await loadModuleSmart(configPathAbs, {
-      repoRoot: opts.repoRoot,
-      tsMode: opts.tsMode ?? 'auto',
-      quiet: opts.quiet,
-      debug: opts.debug,
+    const module = await loadModuleSmart(configPathAbs, {
+      repoRoot: options.repoRoot,
+      tsMode: options.tsMode ?? 'auto',
+      quiet: options.quiet,
+      debug: options.debug,
     });
-    return mod.default ?? mod;
+    return module.default ?? module;
   }
-  const mod = await import(pathToFileURL(configPathAbs).href);
-  return mod.default ?? mod;
+  const module = await import(pathToFileURL(configPathAbs).href);
+  return module.default ?? module;
 }

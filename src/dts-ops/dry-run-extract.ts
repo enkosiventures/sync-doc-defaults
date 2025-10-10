@@ -1,9 +1,9 @@
 export function extractDeclarationBlock(
   dtsText: string,
   typeName: string,
-  opts: { includeJsdoc?: boolean } = {},
+  options: { includeJsdoc?: boolean } = {},
 ): string | null {
-  const includeJsdoc = opts.includeJsdoc !== false;
+  const includeJsdoc = options.includeJsdoc !== false;
   const name = typeName.split('.').pop()!; // tolerate "Namespace.Type"
 
   const nameRe = escapeRe(name);

@@ -1,4 +1,3 @@
-import path from 'node:path';
 import type { JSDoc, PreferredTag } from '../types.js';
 
 
@@ -16,8 +15,8 @@ export function chooseDocIndent(propIndent: string, existingDocIndent?: string):
 function detectDocIndent(fullText: string, rangeStart: number): string {
   const lineStart = fullText.lastIndexOf('\n', rangeStart - 1) + 1;
   const leading = fullText.slice(lineStart, rangeStart);
-  const m = leading.match(/^[ \t]*/);
-  return m ? m[0] : '';
+  const match = leading.match(/^[ \t]*/);
+  return match ? match[0] : '';
 }
 
 /** Detect whether the docblock uses `'*'` or `'* '` for lines after the opener. Defaults to `'* '`. */
@@ -25,9 +24,9 @@ function detectStarPadFromDoc(raw?: string): ' ' | '' {
   if (!raw || !raw.startsWith('/**')) return ' ';
   const lines = raw.split(/\r?\n/).slice(1); // skip the '/**' line
   for (const l of lines) {
-    const m = l.match(/^(\s*)\*(\s?)/);
-    if (m) {
-      return m[2] === ' ' ? ' ' : '';
+    const match = l.match(/^(\s*)\*(\s?)/);
+    if (match) {
+      return match[2] === ' ' ? ' ' : '';
     }
   }
   return ' ';
@@ -120,8 +119,8 @@ export function parseJsdoc(raw: string | undefined): JSDoc {
   for (const line of body) {
     // Allow leading spaces before @tag so single-line docs like
     // "/**  @defaultValue \"x\" */" are parsed as tags, not description.
-    const m = line.match(/^\s*@(\w+)\s*(.*)$/);
-    if (m) tags.push({ tag: m[1], text: (m[2] ?? '').trim() });
+    const match = line.match(/^\s*@(\w+)\s*(.*)$/);
+    if (match) tags.push({ tag: match[1], text: (match[2] ?? '').trim() });
     else description.push(line);
   }
   return { description: trimBlank(description), tags };
@@ -135,7 +134,7 @@ function trimBlank(lines: string[]): string[] {
 }
 
 /** Render a canonical JSDoc block with normalized `@default` or `@defaultValue`. */
-export function renderJsdocCanonical(opts: {
+export function renderJsdocCanonical(options: {
   indent: string;                     // indent to use for ALL doc lines
   starPad?: ' ' | '';                 // ' ' to render " * ", '' to render " *"
   description: string[];
@@ -143,7 +142,7 @@ export function renderJsdocCanonical(opts: {
   defaultLiteral: string;
   preferredTag: PreferredTag;
 }): string {
-  const { indent, starPad = ' ', description, tags, defaultLiteral, preferredTag } = opts;
+  const { indent, starPad = ' ', description, tags, defaultLiteral, preferredTag } = options;
 
   const rest = tags.filter(t => t.tag !== 'default' && t.tag !== 'defaultValue');
 
@@ -227,18 +226,13 @@ export function readDefaultLiteralFromJsdoc(raw: string | undefined): string | u
 }
 
 /** Format a JS value as a compact literal for doc display. */
-export function formatDefaultLiteral(v: unknown): string {
-  if (typeof v === 'string') return JSON.stringify(v);
-  if (typeof v === 'number' || typeof v === 'boolean' || v === null) return String(v);
+export function formatDefaultLiteral(value: unknown): string {
+  if (typeof value === 'string') return JSON.stringify(value);
+  if (typeof value === 'number' || typeof value === 'boolean' || value === null) return String(value);
   try {
-    const s = JSON.stringify(v);
+    const s = JSON.stringify(value);
     return s.length > 120 ? s.slice(0, 117) + '...' : s;
   } catch {
-    return String(v);
+    return String(value);
   }
-}
-
-/** Helper for debug messages. */
-export function getRelativePath(base: string, p: string) {
-  return path.relative(base, p) || '.';
 }

@@ -8,9 +8,9 @@ import { CONFIG_FILENAME_CANDIDATES, RUN_DEFAULTS } from '../constants.js';
 export async function discoverConfig(startDir: string): Promise<string | undefined> {
   let dir = path.resolve(startDir);
   while (true) {
-    for (const f of CONFIG_FILENAME_CANDIDATES) {
-      const p = path.join(dir, f);
-      if (fs.existsSync(p)) return p;
+    for (const filename of CONFIG_FILENAME_CANDIDATES) {
+      const pathFromStart = path.join(dir, filename);
+      if (fs.existsSync(pathFromStart)) return pathFromStart;
     }
     const parent = path.dirname(dir);
     if (parent === dir) break;
@@ -20,13 +20,13 @@ export async function discoverConfig(startDir: string): Promise<string | undefin
 }
 
 export async function loadConfig(file: string): Promise<DocDefaultsConfig> {
-  const ext = path.extname(file).toLowerCase();
+  const extension = path.extname(file).toLowerCase();
   let config: any;
-  if (ext === '.json') {
+  if (extension === '.json') {
     config = JSON.parse(await fs.promises.readFile(file, 'utf8'));
   } else {
-    const mod = await import(pathToFileURL(file).href);
-    config = mod?.default ?? mod;
+    const module = await import(pathToFileURL(file).href);
+    config = module?.default ?? module;
   }
   validateConfig(config, file);
   return config;

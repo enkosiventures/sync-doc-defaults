@@ -2,8 +2,9 @@ import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import fs from 'node:fs/promises';
 import path from 'node:path';
 
-import { loadModuleSmart, getByPath, assertPlainObject, resolveTsxFrom } from '../../src/infra/source-loader.js';
+import { loadModuleSmart, resolveTsxFrom } from '../../src/infra/source-loader.js';
 import { createTempDirectory, write } from '../utils.js';
+import { assertPlainObject, getByPath } from '../../src/utils.js';
 
 
 describe('source-loader', () => {
@@ -23,18 +24,18 @@ describe('source-loader', () => {
     const defaultsPath = path.join(tempDirPath, 'constants.js');
     await write(defaultsPath, `export const DEFAULTS = { a: 1, b: "x" };`);
 
-    const defaultsModule = await loadModuleSmart(defaultsPath, { repoRoot: tempDirPath });
-    expect(defaultsModule).toBeDefined();
-    expect(getByPath(defaultsModule, 'DEFAULTS')).toEqual({ a: 1, b: 'x' });
-    expect(() => assertPlainObject(getByPath(defaultsModule, 'DEFAULTS'), 'ctx')).not.toThrow();
+    const module = await loadModuleSmart(defaultsPath, { repoRoot: tempDirPath });
+    expect(module).toBeDefined();
+    expect(getByPath(module, 'DEFAULTS')).toEqual({ a: 1, b: 'x' });
+    expect(() => assertPlainObject(getByPath(module, 'DEFAULTS'), 'ctx')).not.toThrow();
   });
 
   it('loads a JSON file', async () => {
     const defaultsJsonPath = path.join(tempDirPath, 'constants.json');
     await write(defaultsJsonPath, JSON.stringify({ A: { x: 10 } }));
-    const defaultsModule = await loadModuleSmart(defaultsJsonPath, { repoRoot: tempDirPath });
-    expect(defaultsModule).toEqual({ A: { x: 10 } });
-    expect(getByPath(defaultsModule, 'A.x')).toBe(10);
+    const module = await loadModuleSmart(defaultsJsonPath, { repoRoot: tempDirPath });
+    expect(module).toEqual({ A: { x: 10 } });
+    expect(getByPath(module, 'A.x')).toBe(10);
   });
 
   it('for a TS file, prefers compiled JS when it exists (no tsx required)', async () => {
@@ -46,14 +47,14 @@ describe('source-loader', () => {
     await write(srcTsPath, `export const DEFAULTS = { foo: "from-ts" }`);
     await write(distJsPath, `export const DEFAULTS = { foo: "from-built-js" }`);
 
-    const defaultsModule = await loadModuleSmart(srcTsPath, {
+    const module = await loadModuleSmart(srcTsPath, {
       repoRoot: tempDirPath,
       tsRootDir: path.join(tempDirPath, 'src'),
       tsOutDir: path.join(tempDirPath, 'dist'),
       tsDeclarationDir: undefined,
     });
 
-    expect(getByPath(defaultsModule, 'DEFAULTS.foo')).toBe('from-built-js'); // proves it imported compiled JS
+    expect(getByPath(module, 'DEFAULTS.foo')).toBe('from-built-js'); // proves it imported compiled JS
   });
 
   it('for a TS file without build, throws helpful guidance unless SYNCDOCDEFAULTS_TS=on', async () => {
@@ -82,8 +83,8 @@ describe('source-loader', () => {
     });
 
     if (resolveTsxFrom(tempDirPath)) {
-      const defaultsModule = await call();
-      expect(defaultsModule && defaultsModule.DEFAULTS && defaultsModule.DEFAULTS.n).toBe(2);
+      const module = await call();
+      expect(module && module.DEFAULTS && module.DEFAULTS.n).toBe(2);
     } else {
       await expect(call()).rejects.toThrow(/tsx.+not installed/i);
     }
@@ -125,7 +126,7 @@ describe('source-loader', () => {
       }
 
       // With tsx available, we should fallback and succeed:
-      const defaultsModule = await loadModuleSmart(ts, {
+      const module = await loadModuleSmart(ts, {
         repoRoot: tempDirPath,
         tsRootDir: path.join(tempDirPath, 'src'),
         tsOutDir: path.join(tempDirPath, 'dist', 'src'),
@@ -133,7 +134,7 @@ describe('source-loader', () => {
         tsMode: 'auto',
         quiet: true,
       });
-      expect(defaultsModule.DEFAULTS.foo).toBe('bar');
+      expect(module.DEFAULTS.foo).toBe('bar');
     });
   });
 });

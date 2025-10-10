@@ -11,16 +11,16 @@
 export function findInterfaceBody(text: string, interfaceName: string): { bodyStart: number; bodyEnd: number } | undefined {
   // Support "export interface X" or "interface X"
   const re = new RegExp(`\\b(?:export\\s+)?interface\\s+${escapeRe(interfaceName)}\\s*{`, 'm');
-  const m = re.exec(text);
-  if (!m) return undefined;
+  const match = re.exec(text);
+  if (!match) return undefined;
 
   // brace match from the "{" we found
-  const openIdx = m.index + m[0].lastIndexOf('{');
+  const openIdx = match.index + match[0].lastIndexOf('{');
   let depth = 0;
   for (let i = openIdx; i < text.length; i++) {
-    const ch = text[i];
-    if (ch === '{') depth++;
-    else if (ch === '}') {
+    const char = text[i];
+    if (char === '{') depth++;
+    else if (char === '}') {
       depth--;
       if (depth === 0) {
         return { bodyStart: openIdx + 1, bodyEnd: i };
@@ -38,7 +38,7 @@ export function listInterfaceProps(
   const body = findInterfaceBody(text, interfaceName);
   if (!body) return [];
 
-  const seg = text.slice(body.bodyStart, body.bodyEnd);
+  const segment = text.slice(body.bodyStart, body.bodyEnd);
   const offset = body.bodyStart;
 
   // Start-of-line anchored (multiline) for CRLF/LF safety.
@@ -47,20 +47,19 @@ export function listInterfaceProps(
     /^([ \t]*)(?:readonly\s+)?(?:"([^"]+)"|'([^']+)'|([A-Za-z_$][\w$]*))\??\s*:\s*[^;]*;/gm;
 
   const out: Array<{ name: string; headStart: number; indent: string }> = [];
-  let m: RegExpExecArray | null;
+  let match: RegExpExecArray | null;
 
-  while ((m = propRe.exec(seg))) {
-    const indent = m[1] || '';
-    const name = m[2] || m[3] || m[4];
+  while ((match = propRe.exec(segment))) {
+    const indent = match[1] || '';
+    const name = match[2] || match[3] || match[4];
     if (!name) continue;
-    // m.index is the start-of-line thanks to ^ with /m
-    const headStart = offset + m.index + indent.length;
+    // match.index is the start-of-line thanks to ^ with /m
+    const headStart = offset + match.index + indent.length;
     out.push({ name, headStart, indent });
   }
   return out;
 }
 
-
-function escapeRe(s: string) {
-  return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+function escapeRe(segment: string) {
+  return segment.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }

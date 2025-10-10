@@ -1,3 +1,5 @@
+import { LOG_PREFIX } from "../constants.js";
+
 type Level = 'error' | 'warn' | 'info' | 'debug';
 
 const COLORS = {
@@ -7,10 +9,10 @@ const COLORS = {
   gray: '\x1b[90m'
 } as const;
 
-function fmt(prefix: string, msg: string, ts?: boolean, color?: string) {
+function fmt(prefix: string, message: string, ts?: boolean, color?: string) {
   const time = ts ? new Date().toISOString() + ' ' : '';
-  const pfx = color ? `${COLORS.gray}${time}${color}${prefix}${COLORS.reset}` : `${time}${prefix}`;
-  return `${pfx} ${msg}`;
+  const formattedPrefix = color ? `${COLORS.gray}${time}${color}${prefix}${COLORS.reset}` : `${time}${prefix}`;
+  return `${formattedPrefix} ${message}`;
 }
 
 export class Logger {
@@ -19,53 +21,51 @@ export class Logger {
   private useColors: boolean;
   private withTs: boolean;
 
-  constructor(quiet = false, debug = false, opts?: { timestamp?: boolean; prefix?: string; colors?: boolean }) {
+  constructor(quiet = false, debug = false, options?: { timestamp?: boolean; prefix?: string; colors?: boolean }) {
     this.level = quiet ? 'error' : (debug ? 'debug' : 'info');
-    this.prefix = opts?.prefix ?? '[sync-doc-defaults]';
-    this.useColors = opts?.colors ?? process.stdout.isTTY;
-    this.withTs = !!opts?.timestamp;
+    this.prefix = options?.prefix ?? LOG_PREFIX;
+    this.useColors = options?.colors ?? process.stdout.isTTY;
+    this.withTs = !!options?.timestamp;
   }
 
-  // Info (default)
-  log(msg: string, force = false) {
+  log(message: string, force = false) {
     if (this.level === 'error' && !force) return;
     const line = this.useColors
-      ? fmt(this.prefix, msg, this.withTs, '')
-      : fmt(this.prefix, msg, this.withTs);
+      ? fmt(this.prefix, message, this.withTs, '')
+      : fmt(this.prefix, message, this.withTs);
     console.log(line);
   }
 
-  warn(msg: string) {
+  warn(message: string) {
     if (this.level === 'error') return;
-    const text = `Warning: ${msg}`;
+    const text = `Warning: ${message}`;
     const line = this.useColors
       ? fmt(this.prefix, text, this.withTs, COLORS.yellow)
       : fmt(this.prefix, text, this.withTs);
     console.warn(line);
   }
 
-  error(msg: string, err?: unknown) {
+  error(message: string, err?: unknown) {
     const line = this.useColors
-      ? fmt(this.prefix, msg, this.withTs, COLORS.red)
-      : fmt(this.prefix, msg, this.withTs);
+      ? fmt(this.prefix, message, this.withTs, COLORS.red)
+      : fmt(this.prefix, message, this.withTs);
     console.error(line);
     if (err) {
       console.error(err);
     }
   }
 
-  dbg(msg: string) {
+  dbg(message: string) {
     if (this.level !== 'debug') return;
     const line = this.useColors
-      ? fmt('[sync-doc-defaults:debug]', msg, this.withTs, COLORS.gray)
-      : fmt('[sync-doc-defaults:debug]', msg, this.withTs);
+      ? fmt('[sync-doc-defaults:debug]', message, this.withTs, COLORS.gray)
+      : fmt('[sync-doc-defaults:debug]', message, this.withTs);
     console.log(line);
   }
 }
 
-// Convenience factory that mirrors your CLI flags/env
-export function createLogger(opts: { quiet?: boolean; debugPaths?: boolean; timestamp?: boolean }) {
-  return new Logger(!!opts.quiet, !!opts.debugPaths, { timestamp: opts.timestamp });
+export function createLogger(options: { quiet?: boolean; debugPaths?: boolean; timestamp?: boolean }) {
+  return new Logger(!!options.quiet, !!options.debugPaths, { timestamp: options.timestamp });
 }
 
-export const defaultLogger = new Logger(true, true, { colors: true });
+export const defaultLogger = createLogger({ quiet: true, debugPaths: true });

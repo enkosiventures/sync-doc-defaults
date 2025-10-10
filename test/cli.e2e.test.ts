@@ -8,12 +8,12 @@ import { createTempDirectory } from './utils.js';
 const BIN = path.resolve(__dirname, '../dist/cli.cjs');
 const FIX = path.resolve(__dirname, 'fixtures');
 
-function runCli(args: string[], opts: { tempDirPath: string; env?: NodeJS.ProcessEnv }):
+function runCli(args: string[], options: { tempDirPath: string; env?: NodeJS.ProcessEnv }):
   Promise<{ code: number; stdout: string; stderr: string }> {
   return new Promise((resolve) => {
     execFile(process.execPath, [BIN, ...args], {
-      cwd: opts.tempDirPath,
-      env: { ...process.env, ...(opts.env || {}) },
+      cwd: options.tempDirPath,
+      env: { ...process.env, ...(options.env || {}) },
     }, (err, stdout, stderr) => {
       const code = (err && (err as any).code != null) ? (err as any).code : 0;
       resolve({ code: code as number, stdout, stderr });
