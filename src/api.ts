@@ -351,6 +351,10 @@ async function resolveDtsPathAbs(args: {
 /**
  * Resolves a (possibly nested) property from a module object using dot notation.
  * Handles ES module default exports and CommonJS interop.
+ * 
+ * Note: default-export fallback is only attempted for single-segment paths (e.g., "DEFAULTS"),
+ * not dotted paths.
+ * 
  * @param module - Module object to traverse
  * @param pathExpr - Dot-separated path (e.g., "DEFAULTS" or "config.defaults.ui")
  * @returns The resolved value, or undefined if not found or if a getter throws
@@ -360,18 +364,18 @@ async function resolveDtsPathAbs(args: {
  */
 function selectDefaults(module: any, pathExpr: string): unknown {
   const parts = pathExpr.split('.');
-  let cur = module;
+  let current = module;
   
   try {
-    for (const p of parts) {
-      if (cur == null) return undefined;
-      cur = cur[p];
+    for (const part of parts) {
+      if (current == null) return undefined;
+      current = current[part];
     }
     
     // if the symbol is the default export itself
-    if (cur == null && parts.length === 1 && (module?.default != null)) {
+    if (current == null && parts.length === 1 && (module?.default != null)) {
       try {
-        cur = module.default[parts[0]];
+        current = module.default[parts[0]];
       } catch (_) {
         // Getter on default export threw
         return undefined;
@@ -383,7 +387,7 @@ function selectDefaults(module: any, pathExpr: string): unknown {
     return undefined;
   }
   
-  return cur;
+  return current;
 }
 
 // ===== Config loader (supports mjs/cjs/js/ts) =====

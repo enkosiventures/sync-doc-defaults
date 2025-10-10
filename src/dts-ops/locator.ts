@@ -1,6 +1,10 @@
 /**
  * Finds the character range of an interface body in TypeScript declaration text.
  * Handles nested braces and export modifiers.
+ * 
+ * Limitation: This simple brace scan does not skip braces inside strings or comments; declaration
+ * files rarely contain such cases and are usually safe.
+ * 
  * @param text - TypeScript declaration file content
  * @param interfaceName - Name of the interface to find
  * @returns Object with bodyStart and bodyEnd character positions, or undefined if not found
