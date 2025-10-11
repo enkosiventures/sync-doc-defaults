@@ -182,9 +182,10 @@ export function upsertDefaultForProp(
     // Normalize the indent (preserve “off-by-one” if your locator gave you one)
     const baseIndent = propIndent ?? '';
     const block =
-      `${baseIndent}/**${EOL}` +
+      `/**${EOL}` +
       `${baseIndent} * @${preferredTag} ${literal}${EOL}` +
-      `${baseIndent} */${EOL}`;
+      `${baseIndent} */${EOL}` +
+      `${baseIndent}`;
 
     // Insert the block once; no iterative re-scan needed
     return fullText.slice(0, propHeadStart) + block + fullText.slice(propHeadStart);
