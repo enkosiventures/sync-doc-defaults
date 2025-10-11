@@ -1,6 +1,6 @@
 {
   "name": "sync-doc-defaults",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "Keep your TypeScript JSDocs in sync with runtime default values — no manual edits.",
   "keywords": [
     "documentation",
