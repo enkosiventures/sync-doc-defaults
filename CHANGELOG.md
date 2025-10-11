@@ -1,5 +1,11 @@
 # sync-doc-defaults
 
+## 0.1.2
+
+### Patch Changes
+
+- 1f61385: New JSDoc blocks aligned correctly
+
 ## 0.1.1
 
 ### Patch Changes
