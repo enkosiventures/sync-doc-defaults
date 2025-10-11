@@ -301,3 +301,52 @@ describe('special characters in string defaults', () => {
   });
 });
 
+describe('inject/assert - new docblock indentation', () => {
+  it('inserts a docblock with the same indent as the property when none exists', () => {
+    const BASE = `
+export interface Example {
+  multiplier?: number;
+
+  secondItem?: boolean;
+
+  deeper?: {
+    "with-dash"?: string;
+  }
+}
+`;
+
+    const UPDATED = `
+export interface Example {
+  /**
+   * @default 2
+   */
+  multiplier?: number;
+
+  /**
+   * @default false
+   */
+  secondItem?: boolean;
+
+  /**
+   * @default {"with-dash":"ok"}
+   */
+  deeper?: {
+    "with-dash"?: string;
+  }
+}
+`;
+
+    const { updatedText, updatedCount } = injectDefaultsIntoDts({
+      dtsText: BASE,
+      interfaceName: 'Example',
+      defaults: { multiplier: 2, secondItem: false, deeper: { 'with-dash': 'ok' } },
+      preferredTag: 'default',
+    });
+
+    console.warn(updatedText);
+
+    expect(updatedCount).toBeGreaterThan(0);
+
+    expect(updatedText).toBe(UPDATED);
+  });
+});

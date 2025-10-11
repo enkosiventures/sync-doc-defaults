@@ -304,7 +304,7 @@ Likely your compiled JS has missing `.js` extensions.
 
 ---
 
-### “SYNCDOCDEFAULTS_TS=on / --ts on … ‘tsx’ is not installed”
+### “ts mode is "on" but "tsx" is not installed in the target project”
 
 **Fix**
 Add `tsx` to your project (not globally):
