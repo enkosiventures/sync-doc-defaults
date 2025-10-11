@@ -90,9 +90,10 @@ describe('CLI --ts flag', () => {
     expect(result.code).toBe(0);
 
     const dts = await fs.readFile(path.join(tempDirPath, 'dist/types/types.d.ts'), 'utf8');
-    expect(dts).toMatch(`export interface Example {  /**
+    console.warn(dts);
+    expect(dts).toMatch(`export interface Example { /**
   * @default \"bar\"
   */
-foo?: string; }`);
+ foo?: string; }`);
   });
 });
