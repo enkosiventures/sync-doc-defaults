@@ -1,5 +1,11 @@
 # sync-doc-defaults
 
+## 0.1.3
+
+### Patch Changes
+
+- 3b0e43f: Removed unnecessary code and fixed ci flow
+
 ## 0.1.2
 
 ### Patch Changes
