@@ -21,7 +21,6 @@ export function injectDefaultsIntoDts(params: {
 
   // snapshot of props
   const props = listInterfaceProps(dtsText, interfaceName);
-  console.warn(`Found ${props.length} props in interface ${interfaceName}`, props);
   if (!props.length) {
     return {
       updatedText: dtsText,
